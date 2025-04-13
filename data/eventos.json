@@ -1,8 +1,5 @@
 {
   "evento_activo": false,
-  "circulos": {
-    "null": "https://feiqui.com",
-    "entry": "https://feiqui.com",
-    "posthuman": "https://feiqui.com"
-  }
+  "tipo": "drop",
+  "url": "https://feiqui.com"
 }
