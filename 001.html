@@ -77,7 +77,27 @@
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
   
   <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
-  
+<script>
+  // Generar un parámetro único basado en la hora actual
+  const cacheBuster = new Date().getTime();
+  const eventosURL = `https://bitcard.feiqui.com/data/eventos.json${cacheBuster}`;
+
+  fetch(eventosURL)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("No se pudo cargar el archivo de eventos");
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.evento_activo && data.url) {
+        window.location.href = data.url;
+      }
+    })
+    .catch(error => {
+      console.error("Error al cargar eventos:", error);
+    });
+</script>  
 </body>
 </html>
 
