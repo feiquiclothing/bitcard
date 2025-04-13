@@ -1,18 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script>
-  fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
-    .then(response => response.json())
-    .then(data => {
-      if (data.evento_activo && data.url) {
-        window.location.href = data.url;
-      }
-    })
-    .catch(error => {
-      console.error("Error al cargar eventos:", error);
-    });
-</script>
+  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi BitCard</title>
@@ -77,7 +66,18 @@
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
   
   <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
-  
+ <script>
+  fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
+    .then(response => response.json())
+    .then(data => {
+      if (data.evento_activo && data.url) {
+        window.location.href = data.url;
+      }
+    })
+    .catch(error => {
+      console.error("Error al cargar eventos:", error);
+    });
+</script> 
 </body>
 </html>
 
