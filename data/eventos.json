@@ -1,5 +1,8 @@
 {
-  "001": "null",
-  "002": "entry",
-  "003": "posthuman"
+  "evento_activo": true,
+  "circulos": {
+    "null": "https://feiqui.com",
+    "entry": "https://feiqui.com",
+    "posthuman": "https://feiqui.com"
+  }
 }
