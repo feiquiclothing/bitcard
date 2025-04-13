@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <script>
-  fetch("https://bitcard.feiqui.com/data/eventos.json")
+  fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
     .then(response => response.json())
     .then(data => {
       if (data.evento_activo && data.url) {
