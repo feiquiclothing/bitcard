@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script>
+  fetch("https://feiquiclothing.github.io/bitcard/data/eventos.json")
+    .then(response => response.json())
+    .then(data => {
+      if (data.evento_activo && data.url) {
+        window.location.href = data.url;
+      }
+    })
+    .catch(error => {
+      console.error("Error al cargar eventos:", error);
+    });
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi BitCard</title>
