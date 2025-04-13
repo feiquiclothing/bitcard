@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <script>
-  fetch("https://bitcard.feiqui.com/data/eventos.json")
+  fetch("https://feiquiclothing.github.io/bitcard/data/eventos.json?v=")
     .then(response => response.json())
     .then(data => {
       if (data.evento_activo && data.url) {
@@ -80,7 +80,7 @@
 <script>
   // Generar un parámetro único basado en la hora actual
   const cacheBuster = new Date().getTime();
-  const eventosURL = `https://bitcard.feiqui.com/data/eventos.json${cacheBuster}`;
+  const eventosURL = `https://feiquiclothing.github.io/bitcard/data/eventos.json?v=${cacheBuster}`;
 
   fetch(eventosURL)
     .then(response => {
