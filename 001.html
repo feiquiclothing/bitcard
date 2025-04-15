@@ -69,10 +69,11 @@
   <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
 
   
-  <p>Nombre: <span id="nombre"></span></p>
-<p>Bits: <span id="bits"></span></p>
-<p>Ranking: <span id="ranking"></span></p>
-<p>Círculo: <span id="circulo"></span></p>
+  <p>Nombre: <span id="Nombre"></span></p>
+<p>Bits: <span id="Bits"></span></p>
+<p>Ranking: <span id="Ranking"></span></p>
+<p>Círculo: <span id="Círculo"></span></p>
+<p>Visitas: <span id="Visitas"></span></p>
   
   <script>
   const clienteId = "001"; // Cambiar por el ID real del cliente
@@ -86,11 +87,11 @@
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
-        const cliente = data.find(c => c.id === clienteId);
+        const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
-          const nuevasVisitas = parseInt(cliente.visitas || 0) + 1;
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
-          fetch(`${apiUrl}/id/${clienteId}`, {
+          fetch(`${apiUrl}/ID/${clienteId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json"
