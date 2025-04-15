@@ -65,8 +65,30 @@
   <div class="count">Bits: <strong>0</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
   
+ 
   <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
- <script>
+
+  
+  <p>Nombre: <span id="nombre"></span></p>
+<p>Bits: <span id="bits"></span></p>
+<p>Ranking: <span id="ranking"></span></p>
+<p>Círculo: <span id="circulo"></span></p>
+  
+  <script>
+  const clienteId = "001";
+  fetch("https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b")
+    .then((response) => response.json())
+    .then((data) => {
+      const cliente = data.find((c) => c.ID === clienteId);
+      if (cliente) {
+        document.getElementById("nombre").textContent = cliente.Nombre;
+        document.getElementById("bits").textContent = cliente.Bits;
+        document.getElementById("ranking").textContent = cliente.Ranking;
+        document.getElementById("circulo").textContent = cliente.Círculo;
+      }
+    });
+</script>
+  <script>
   fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
     .then(response => response.json())
     .then(data => {
