@@ -68,17 +68,16 @@
  
   <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
 
-  
-  <p>Nombre: <span id="Nombre"></span></p>
+<p>Nombre: <span id="Nombre"></span></p>
 <p>Bits: <span id="Bits"></span></p>
 <p>Ranking: <span id="Ranking"></span></p>
 <p>Círculo: <span id="Círculo"></span></p>
 <p>Visitas: <span id="Visitas"></span></p>
-  
-  <script>
-  const clienteId = "001"; // Cambiar por el ID real del cliente
+
+<script>
+  const clienteId = "001";
   const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
-  const secret = "111"; // Cambiar por tu clave secreta
+  const secret = "111";
 
   const urlParams = new URLSearchParams(window.location.search);
   const authParam = urlParams.get("auth");
@@ -91,20 +90,34 @@
         if (cliente) {
           const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
+          // Actualizar visitas
           fetch(`${apiUrl}/ID/${clienteId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              visitas: nuevasVisitas
+              Visitas: nuevasVisitas
             })
           });
+
+          // Mostrar datos
+          document.getElementById("Nombre").textContent = cliente.Nombre;
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+          document.getElementById("Círculo").textContent = cliente.Círculo;
+          document.getElementById("Visitas").textContent = nuevasVisitas;
+        } else {
+          console.log("Cliente no encontrado.");
         }
-      });
+      })
+      .catch(error => console.log("Error al cargar datos:", error));
+  } else {
+    console.log("Código secreto incorrecto o ausente.");
   }
 </script>
-  <script>
+
+<script>
   fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
     .then(response => response.json())
     .then(data => {
@@ -115,6 +128,4 @@
     .catch(error => {
       console.error("Error al cargar eventos:", error);
     });
-</script> 
-</body>
-</html>
+</script>
