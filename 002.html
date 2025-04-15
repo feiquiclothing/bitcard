@@ -78,41 +78,7 @@
     const authParam = urlParams.get("auth");
 
     if (authParam === secret) {
-      fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-          const cliente = data.find(c => c.ID === clienteId);
-          if (cliente) {
-            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-
-            const updatedData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: cliente.Bits,
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo,
-              Visitas: nuevasVisitas
-            };
-
-            // Actualizar datos en SheetBest
-            fetch(`${apiUrl}/ID/${clienteId}`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(updatedData)
-            });
-
-            // Mostrar datos en pantalla
-            document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-            document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-            document.getElementById("Bits").textContent = cliente.Bits;
-            document.getElementById("Visitas").textContent = nuevasVisitas;
-            document.getElementById("Ranking").textContent = cliente.Ranking;
-          } else {
-            console.error("Cliente no encontrado");
-          }
-        });
+      ?auth=111
     }
   </script>
 
