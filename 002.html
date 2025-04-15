@@ -1,4 +1,62 @@
-<!-- ...el resto del HTML igual... -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitCard</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    body {
+      background-color: white;
+      color: #B6B6B6;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    img {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -120px;
+    }
+    .count {
+      font-size: 2em;
+      margin: 15px 0;
+      margin-top: 10px;
+    }
+    .quote {
+      opacity: 0.6;
+      font-style: italic;
+      margin-top: 30px;
+      margin-bottom: 45px;
+    }
+    h1 {
+      margin: 0;
+    }
+    #circuloImagen {
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      margin-top: 0px;
+    }
+  </style>
+</head>
+<body>
+
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
+  
+  <h1 id="nombre">SUJETO:</h1>
+  <h1 id="circulo">CÍRCULO:</h1>
+  <img id="circuloImagen" src="" alt="Icono de círculo">
+
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <!-- ...el resto del HTML igual... -->
 
 <div class="count">Ranking: <strong id="Ranking">-</strong></div>
 <div class="quote">Tu presencia quedó registrada por el sistema.</div>
@@ -77,3 +135,6 @@
       }
     });
 </script>
+
+</body>
+</html>
