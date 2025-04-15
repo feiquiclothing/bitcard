@@ -75,18 +75,33 @@
 <p>Círculo: <span id="circulo"></span></p>
   
   <script>
-  const clienteId = "001";
-  fetch("https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b")
-    .then((response) => response.json())
-    .then((data) => {
-      const cliente = data.find((c) => c.ID === clienteId);
-      if (cliente) {
-        document.getElementById("nombre").textContent = cliente.Nombre;
-        document.getElementById("bits").textContent = cliente.Bits;
-        document.getElementById("ranking").textContent = cliente.Ranking;
-        document.getElementById("circulo").textContent = cliente.Círculo;
-      }
-    });
+  const clienteId = "001"; // Cambiar por el ID real del cliente
+  const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
+  const secret = "111"; // Cambiar por tu clave secreta
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const authParam = urlParams.get("auth");
+
+  if (authParam === secret) {
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.id === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.visitas || 0) + 1;
+
+          fetch(`${apiUrl}/id/${clienteId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              visitas: nuevasVisitas
+            })
+          });
+        }
+      });
+  }
 </script>
   <script>
   fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
