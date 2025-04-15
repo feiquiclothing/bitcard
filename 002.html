@@ -7,83 +7,103 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background-color: #ffffff;
+      background-color: white;
       color: #B6B6B6;
       font-family: monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      height: 100vh;
+      margin: 0;
       text-align: center;
     }
-
-    img.logo {
+    img {
       width: 80%;
       max-width: 400px;
       height: auto;
       margin-top: -120px;
     }
-
-    img.status-icon {
-      width: auto;
-      height: auto;
-      display: inline-block;
-      margin-top: -30px;
+    .count {
+      font-size: 2em;
+      margin: 15px 0;
+      margin-top: 10px;
     }
-
-    .info {
-      margin-top: 20px;
-      font-size: 1.5em;
-    }
-
     .quote {
       opacity: 0.6;
       font-style: italic;
       margin-top: 30px;
       margin-bottom: 45px;
     }
-
-    a {
-      color: #b6b6b6;
-      font-size: 16px;
-      text-decoration: none;
+    h1 {
+      margin: 0;
     }
   </style>
 </head>
 <body>
 
-  <img class="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo">
+  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo">
 
-  <h1 id="nombre">SUJETO: ...</h1>
-  <h2 id="circulo">CÍRCULO: ...</h2>
-  <img class="status-icon" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250" alt="null">
-
-  <div class="info">Bits: <span id="Bits">0</span></div>
-  <div class="info">Visitas: <span id="Visitas">0</span></div>
-  <div class="info">Ranking: <span id="Ranking">---</span></div>
-
+  <h1 id="nombre">SUJETO:</h1>
+  <h1 id="circulo">CÍRCULO:</h1>
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
 
-  <a href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
+  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
   <script>
     const clienteId = "001";
     const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
     const secret = "111";
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const authParam = urlParams.get("auth");
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.ID === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
-    if (authParam === secret) {
-      ?auth=111
-    }
+          // Mostrar datos
+          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+
+          // Si el auth es correcto, actualizamos visitas
+          const urlParams = new URLSearchParams(window.location.search);
+          const authParam = urlParams.get("auth");
+
+          if (authParam === secret) {
+            const updatedData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Bits: cliente.Bits,
+              Ranking: cliente.Ranking,
+              Círculo: cliente.Círculo,
+              Visitas: nuevasVisitas
+            };
+
+            fetch(`${apiUrl}/ID/${clienteId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(updatedData)
+            });
+
+            document.getElementById("Visitas").textContent = nuevasVisitas;
+          }
+        } else {
+          console.error("Cliente no encontrado");
+        }
+      });
   </script>
 
   <script>
-    // Redirección a evento si hay uno activo
     fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
       .then(response => response.json())
       .then(data => {
@@ -95,5 +115,6 @@
         console.error("Error al cargar eventos:", error);
       });
   </script>
+
 </body>
 </html>
