@@ -83,41 +83,42 @@
   const authParam = urlParams.get("auth");
 
   if (authParam === secret) {
-  fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-      const cliente = data.find(c => c.ID === clienteId);
-      if (cliente) {
-        const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.ID === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
-        // Actualizar visitas y mantener todos los demás datos
-        fetch(`${apiUrl}/ID/${clienteId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
+          const updatedData = {
             ID: cliente.ID,
             Nombre: cliente.Nombre,
             Bits: cliente.Bits,
             Ranking: cliente.Ranking,
             Círculo: cliente.Círculo,
             Visitas: nuevasVisitas
-          })
-        });
+          };
 
-        // Mostrar datos actualizados
-        document.getElementById("Nombre").textContent = cliente.Nombre;
-        document.getElementById("Bits").textContent = cliente.Bits;
-        document.getElementById("Ranking").textContent = cliente.Ranking;
-        document.getElementById("Círculo").textContent = cliente.Círculo;
-        document.getElementById("Visitas").textContent = nuevasVisitas;
-      }
-    });
-}
-      .catch(error => console.log("Error al cargar datos:", error));
-  } else {
-    console.log("Código secreto incorrecto o ausente.");
+          console.log("Enviando este JSON al SheetBest:", updatedData);
+
+          fetch(`${apiUrl}/ID/${clienteId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(updatedData)
+          });
+
+          // Mostrar datos
+          document.getElementById("Nombre").textContent = cliente.Nombre;
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+          document.getElementById("Círculo").textContent = cliente.Círculo;
+          document.getElementById("Visitas").textContent = nuevasVisitas;
+        } else {
+          console.error("Cliente no encontrado");
+        }
+      });
   }
 </script>
 
