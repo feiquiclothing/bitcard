@@ -10,37 +10,33 @@
       margin: 0;
       padding: 0;
       background-color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-    }
-
-    img {
-      width: 80%;
-      max-width: 400px; /* o lo que prefieras */
-      height: auto;
-      margin-top: -50px; /* ajustá este valor para acercar o alejar */
-    }
-
-    body {
-      background-color: white;
       color: #B6B6B6;
       font-family: monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: -90;
+      min-height: 100vh;
       text-align: center;
     }
 
-    .count {
-      font-size: 2em;
-      margin: 15px 0;
-      margin-top: 10px;
+    img.logo {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -120px;
+    }
+
+    img.status-icon {
+      width: auto;
+      height: auto;
+      display: inline-block;
+      margin-top: -30px;
+    }
+
+    .info {
+      margin-top: 20px;
+      font-size: 1.5em;
     }
 
     .quote {
@@ -50,50 +46,28 @@
       margin-bottom: 45px;
     }
 
-    /* Estilo para la nueva lista */
-    .list-container {
-      background-color: #f2f2f2;
-      padding: 20px;
-      border-radius: 8px;
-      width: 80%;
-      margin-top: 20px;
-      text-align: left;
-      display: inline-block;
+    a {
+      color: #b6b6b6;
+      font-size: 16px;
+      text-decoration: none;
     }
-
-    .list-item {
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
-
-    .list-item span {
-      font-weight: bold;
-    }
-
   </style>
 </head>
 <body>
-  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo" style="margin-top: -120px;">
 
-  <p style="margin-top: -75px;"><h1>N001/SUJETO: NOMBRE</h1></p>
-  <p style="margin-top: -75px;"><h1>STATUS: CÍRCULO NULL</h1></p> 
-  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250" alt="null" style="margin-top: -30px; width: auto; height: auto; display: inline-block;">
-  
-  <div class="count">Visitas: <strong>0</strong></div>
-  <div class="count">Bits: <strong>0</strong></div>
+  <img class="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo">
+
+  <h1 id="nombre">SUJETO: ...</h1>
+  <h2 id="circulo">CÍRCULO: ...</h2>
+  <img class="status-icon" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250" alt="null">
+
+  <div class="info">Bits: <span id="Bits">0</span></div>
+  <div class="info">Visitas: <span id="Visitas">0</span></div>
+  <div class="info">Ranking: <span id="Ranking">---</span></div>
+
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
-  
-  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a>
-  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
-  <!-- Nueva lista con Nombre, Bits, Ranking, Círculo, Visitas -->
-  <div class="list-container">
-    <div class="list-item">Nombre: <span id="Nombre"></span></div>
-    <div class="list-item">Bits: <span id="Bits"></span></div>
-    <div class="list-item">Ranking: <span id="Ranking"></span></div>
-    <div class="list-item">Círculo: <span id="Círculo"></span></div>
-    <div class="list-item">Visitas: <span id="Visitas"></span></div>
-  </div>
+  <a href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
   <script>
     const clienteId = "001";
@@ -120,8 +94,7 @@
               Visitas: nuevasVisitas
             };
 
-            console.log("Enviando este JSON al SheetBest:", updatedData);
-
+            // Actualizar datos en SheetBest
             fetch(`${apiUrl}/ID/${clienteId}`, {
               method: "PUT",
               headers: {
@@ -130,12 +103,12 @@
               body: JSON.stringify(updatedData)
             });
 
-            // Mostrar datos
-            document.getElementById("Nombre").textContent = cliente.Nombre;
+            // Mostrar datos en pantalla
+            document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+            document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
             document.getElementById("Bits").textContent = cliente.Bits;
-            document.getElementById("Ranking").textContent = cliente.Ranking;
-            document.getElementById("Círculo").textContent = cliente.Círculo;
             document.getElementById("Visitas").textContent = nuevasVisitas;
+            document.getElementById("Ranking").textContent = cliente.Ranking;
           } else {
             console.error("Cliente no encontrado");
           }
@@ -144,6 +117,7 @@
   </script>
 
   <script>
+    // Redirección a evento si hay uno activo
     fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
       .then(response => response.json())
       .then(data => {
