@@ -42,7 +42,7 @@
       width: auto;
       height: auto;
       max-height: 200px;
-      margin-top: -10px;
+      margin-top: -20px;
     }
   </style>
 </head>
@@ -63,59 +63,65 @@
   <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
   <script>
-  const clienteId = "001";
-  const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
-  const secret = "111";
+    const clienteId = "001";
+    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
+    const secret = "111";
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const authParam = urlParams.get("auth");
+    const imagenesPorCirculo = {
+      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/posthuman.png?v=1744482250"
+    };
 
-  fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-      const cliente = data.find(c => c.ID === clienteId);
-      if (cliente) {
-        const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.ID === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
-        // Mostrar datos en pantalla
-        document.getElementById("Nombre").textContent = cliente.Nombre;
-        document.getElementById("Bits").textContent = cliente.Bits;
-        document.getElementById("Ranking").textContent = cliente.Ranking;
-        document.getElementById("Círculo").textContent = cliente.Círculo;
-        document.getElementById("Visitas").textContent = cliente.Visitas;
+          // Mostrar datos
+          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
 
-        if (authParam === secret) {
-          const updatedData = {
-            ID: cliente.ID,
-            Nombre: cliente.Nombre,
-            Bits: cliente.Bits,
-            Ranking: cliente.Ranking,
-            Círculo: cliente.Círculo,
-            Visitas: nuevasVisitas
-          };
+          // Imagen dinámica por círculo
+          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          if (imagenCírculo) {
+            document.getElementById("circuloImagen").src = imagenCírculo;
+          }
 
-          fetch(`${apiUrl}/ID/${clienteId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(updatedData)
-          });
+          // Actualizar visitas si auth es correcto
+          const urlParams = new URLSearchParams(window.location.search);
+          const authParam = urlParams.get("auth");
 
-          // Actualizar en pantalla y mostrar mensaje temporal
-          document.getElementById("Visitas").textContent = nuevasVisitas;
-          const mensaje = document.getElementById("mensaje");
-          mensaje.textContent = "+1 visita acreditada";
+          if (authParam === secret) {
+            const updatedData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Bits: cliente.Bits,
+              Ranking: cliente.Ranking,
+              Círculo: cliente.Círculo,
+              Visitas: nuevasVisitas
+            };
 
-          setTimeout(() => {
-            mensaje.textContent = "";
-          }, 3000); // 3 segundos
+            fetch(`${apiUrl}/ID/${clienteId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(updatedData)
+            });
+
+            document.getElementById("Visitas").textContent = nuevasVisitas;
+          }
+        } else {
+          console.error("Cliente no encontrado");
         }
-      } else {
-        console.error("Cliente no encontrado");
-      }
-    });
-</script>
+      });
+  </script>
 
   <script>
     fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
