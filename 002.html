@@ -38,14 +38,22 @@
     h1 {
       margin: 0;
     }
+    #circuloImagen {
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      margin-top: -20px;
+    }
   </style>
 </head>
 <body>
 
-  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo">
-
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
+  
   <h1 id="nombre">SUJETO:</h1>
   <h1 id="circulo">CÍRCULO:</h1>
+  <img id="circuloImagen" src="" alt="Icono de círculo">
+
   <div class="count">Bits: <strong id="Bits">0</strong></div>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
@@ -58,6 +66,12 @@
     const clienteId = "001";
     const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
     const secret = "111";
+
+    const imagenesPorCirculo = {
+      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/entry.png?v=1744482250",
+      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/posthuman.png?v=1744482250"
+    };
 
     fetch(apiUrl)
       .then(response => response.json())
@@ -73,7 +87,13 @@
           document.getElementById("Visitas").textContent = cliente.Visitas;
           document.getElementById("Ranking").textContent = cliente.Ranking;
 
-          // Si el auth es correcto, actualizamos visitas
+          // Imagen dinámica por círculo
+          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          if (imagenCírculo) {
+            document.getElementById("circuloImagen").src = imagenCírculo;
+          }
+
+          // Actualizar visitas si auth es correcto
           const urlParams = new URLSearchParams(window.location.search);
           const authParam = urlParams.get("auth");
 
