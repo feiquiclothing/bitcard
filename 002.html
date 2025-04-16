@@ -18,41 +18,46 @@
       margin: 0;
       text-align: center;
     }
+
     img {
       width: 80%;
       max-width: 400px;
       height: auto;
       margin-top: -120px;
     }
+
     .count {
       font-size: 2em;
       margin: 15px 0;
       margin-top: 10px;
     }
+
     .quote {
       opacity: 0.6;
       font-style: italic;
       margin-top: 30px;
       margin-bottom: 45px;
     }
+
     h1 {
       margin: 0;
     }
+
     #circuloImagen {
       width: auto;
       height: auto;
       max-height: 200px;
       margin-top: -10px;
     }
+
     .mensaje {
       color: #B6B6B6;
       font-size: 14px;
       opacity: 0;
-      transition: opacity 1.5s ease-in-out;
-      margin-top: 5px;
-      height: 18px;
+      transition: opacity 0.5s ease-in-out;
     }
-    .mensaje.visible {
+
+    .visible {
       opacity: 1;
     }
   </style>
@@ -65,14 +70,10 @@
   <h1 id="circulo">CÍRCULO:</h1>
   <img id="circuloImagen" src="" alt="Icono de círculo">
 
-  <div class="count">Bits: <strong id="Bits">0</strong>
-    <p id="mensajeBits" class="mensaje">+50 bits acreditados</p>
-  </div>
-
-  <div class="count">Visitas: <strong id="Visitas">0</strong>
-    <p id="mensajeVisita" class="mensaje">+1 visita acreditada</p>
-  </div>
-
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <p id="mensajeBits" class="mensaje">+50 bits acreditados</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita acreditada</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
 
@@ -96,13 +97,8 @@
       .then(data => {
         const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
-          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-          const nuevosBits = parseInt(cliente.Bits || 0) + 50;
-
           document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
           document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-          document.getElementById("Bits").textContent = nuevosBits;
-          document.getElementById("Visitas").textContent = cliente.Visitas;
           document.getElementById("Ranking").textContent = cliente.Ranking;
 
           const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
@@ -110,51 +106,65 @@
             document.getElementById("circuloImagen").src = imagenCírculo;
           }
 
-          const urlParams = new URLSearchParams(window.location.search);
-          const authParam = urlParams.get("auth");
+          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+          const ahora = new Date();
+          const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
 
-          if (authParam === secret) {
-            const updatedData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: nuevosBits,
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo,
-              Visitas: nuevasVisitas
-            };
+          if (puedeAcreditar) {
+            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+            const nuevosBits = parseInt(cliente.Bits || 0) + 50;
 
-            fetch(`${apiUrl}/ID/${clienteId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updatedData)
-            });
-
-            const bitLogData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Incremento: 50,
-              Fecha: new Date().toISOString()
-            };
-
-            fetch(bitLogUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(bitLogData)
-            });
-
-            document.getElementById("Visitas").textContent = nuevasVisitas;
             document.getElementById("Bits").textContent = nuevosBits;
+            document.getElementById("Visitas").textContent = nuevasVisitas;
 
-            const mensajeVisita = document.getElementById("mensajeVisita");
-            const mensajeBits = document.getElementById("mensajeBits");
+            const urlParams = new URLSearchParams(window.location.search);
+            const authParam = urlParams.get("auth");
 
-            mensajeVisita.classList.add("visible");
-            mensajeBits.classList.add("visible");
+            if (authParam === secret) {
+              const updatedData = {
+                ID: cliente.ID,
+                Nombre: cliente.Nombre,
+                Bits: nuevosBits,
+                Ranking: cliente.Ranking,
+                Círculo: cliente.Círculo,
+                Visitas: nuevasVisitas
+              };
 
-            setTimeout(() => {
-              mensajeVisita.classList.remove("visible");
-              mensajeBits.classList.remove("visible");
-            }, 3000);
+              fetch(`${apiUrl}/ID/${clienteId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData)
+              });
+
+              const bitLogData = {
+                ID: cliente.ID,
+                Nombre: cliente.Nombre,
+                Incremento: 50,
+                Fecha: new Date().toISOString()
+              };
+
+              fetch(bitLogUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bitLogData)
+              });
+
+              // Mostrar mensajes
+              const mensajeVisita = document.getElementById("mensajeVisita");
+              const mensajeBits = document.getElementById("mensajeBits");
+              mensajeVisita.classList.add("visible");
+              mensajeBits.classList.add("visible");
+
+              setTimeout(() => {
+                mensajeVisita.classList.remove("visible");
+                mensajeBits.classList.remove("visible");
+              }, 3000);
+
+              localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+            }
+          } else {
+            document.getElementById("Bits").textContent = cliente.Bits;
+            document.getElementById("Visitas").textContent = cliente.Visitas;
           }
         } else {
           console.error("Cliente no encontrado");
