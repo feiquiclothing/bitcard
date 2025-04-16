@@ -42,7 +42,7 @@
       width: auto;
       height: auto;
       max-height: 200px;
-      margin-top: 0px;
+      margin-top: -10px;
     }
   </style>
 </head>
@@ -55,12 +55,14 @@
   <img id="circuloImagen" src="" alt="Icono de círculo">
 
   <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <p id="mensajeBits" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+50 bits acreditados</p>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+1 visita acreditada</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
 
   
-
+  
 
   <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
   <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
@@ -89,11 +91,8 @@
           document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
           document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
           document.getElementById("Bits").textContent = nuevosBits; // Mostrar los nuevos bits
-          <p id="mensajeBits" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+50 bits</p>
-          document.getElementById("Ranking").textContent = cliente.Ranking;
           document.getElementById("Visitas").textContent = cliente.Visitas;
-            <p id="mensajeVisita" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+1 visita</p>
-          
+          document.getElementById("Ranking").textContent = cliente.Ranking;
 
           // Imagen dinámica por círculo
           const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
