@@ -18,31 +18,47 @@
       margin: 0;
       text-align: center;
     }
+
     img {
       width: 80%;
       max-width: 400px;
       height: auto;
       margin-top: -120px;
     }
+
     .count {
       font-size: 2em;
       margin: 15px 0;
       margin-top: 10px;
     }
+
     .quote {
       opacity: 0.6;
       font-style: italic;
       margin-top: 30px;
       margin-bottom: 45px;
     }
+
     h1 {
       margin: 0;
     }
+
     #circuloImagen {
       width: auto;
       height: auto;
       max-height: 200px;
       margin-top: 1px;
+    }
+
+    .mensaje {
+      color: #B6B6B6;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    .visible {
+      opacity: 1;
     }
   </style>
 </head>
@@ -54,27 +70,20 @@
   <h1 id="circulo">CÍRCULO:</h1>
   <img id="circuloImagen" src="" alt="Icono de círculo">
 
-  <div class="count">
-  Bits: <strong id="Bits">0</strong>
-  <p id="mensajeBits" style="color: #B6B6B6; font-size: 14px; display: none; margin: 5px 0 0;">+50 bits acreditados</p>
-</div>
-
-<div class="count">
-  Visitas: <strong id="Visitas">0</strong>
-  <p id="mensajeVisita" style="color: #B6B6B6; font-size: 14px; display: none; margin: 5px 0 0;">+1 visita acreditada</p>
-</div>
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <p id="mensajeBits" class="mensaje">+50 bits acreditados</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita acreditada</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
-
-
 
   <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
   <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
   <script>
     const clienteId = "001";
-    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Esta URL es para la hoja principal.
-    const bitLogUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b/tabs/bit_logs"; // Cambiar a la URL de la hoja bit_logs
+    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
+    const bitLogUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b/tabs/bit_logs";
     const secret = "111";
 
     const imagenesPorCirculo = {
@@ -88,80 +97,75 @@
       .then(data => {
         const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
-          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-          const nuevosBits = parseInt(cliente.Bits || 0) + 50; // Aumenta 50 bits
-
-          // Mostrar datos
           document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
           document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-          document.getElementById("Bits").textContent = nuevosBits; // Mostrar los nuevos bits
-          document.getElementById("Visitas").textContent = cliente.Visitas;
           document.getElementById("Ranking").textContent = cliente.Ranking;
 
-          // Imagen dinámica por círculo
           const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
           if (imagenCírculo) {
             document.getElementById("circuloImagen").src = imagenCírculo;
           }
 
-          // Actualizar visitas y bits si auth es correcto
-          const urlParams = new URLSearchParams(window.location.search);
-          const authParam = urlParams.get("auth");
-if (authParam === secret) {
-  const nuevosBits = parseInt(cliente.Bits || 0) + 50;
-  const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+          const ahora = new Date();
+          const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
 
-  const updatedData = {
-    ID: cliente.ID,
-    Nombre: cliente.Nombre,
-    Bits: nuevosBits,
-    Ranking: cliente.Ranking,
-    Círculo: cliente.Círculo,
-    Visitas: nuevasVisitas
-  };
+          if (puedeAcreditar) {
+            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+            const nuevosBits = parseInt(cliente.Bits || 0) + 50;
 
-  // Actualizar la hoja principal
-  fetch(`${apiUrl}/ID/${clienteId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(updatedData)
-  });
+            document.getElementById("Bits").textContent = nuevosBits;
+            document.getElementById("Visitas").textContent = nuevasVisitas;
 
-  // Registrar el incremento en bit_logs
-  const bitLogData = {
-    ID: cliente.ID,
-    Nombre: cliente.Nombre,
-    Incremento: 50,
-    Fecha: new Date().toISOString()
-  };
+            const urlParams = new URLSearchParams(window.location.search);
+            const authParam = urlParams.get("auth");
 
-  fetch(bitLogUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(bitLogData)
-  });
+            if (authParam === secret) {
+              const updatedData = {
+                ID: cliente.ID,
+                Nombre: cliente.Nombre,
+                Bits: nuevosBits,
+                Ranking: cliente.Ranking,
+                Círculo: cliente.Círculo,
+                Visitas: nuevasVisitas
+              };
 
-  // Actualizar la interfaz
-  document.getElementById("Visitas").textContent = nuevasVisitas;
-  document.getElementById("Bits").textContent = nuevosBits;
+              fetch(`${apiUrl}/ID/${clienteId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData)
+              });
 
-  // Mostrar mensajes de acreditación
-  const mensajeVisita = document.getElementById("mensajeVisita");
-  mensajeVisita.style.display = "block";
+              const bitLogData = {
+                ID: cliente.ID,
+                Nombre: cliente.Nombre,
+                Incremento: 50,
+                Fecha: new Date().toISOString()
+              };
 
-  const mensajeBits = document.getElementById("mensajeBits");
-  mensajeBits.style.display = "block";
+              fetch(bitLogUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bitLogData)
+              });
 
-  setTimeout(() => {
-    mensajeVisita.style.display = "none";
-    mensajeBits.style.display = "none";
-  }, 3000);
-}
-          
+              // Mostrar mensajes
+              const mensajeVisita = document.getElementById("mensajeVisita");
+              const mensajeBits = document.getElementById("mensajeBits");
+              mensajeVisita.classList.add("visible");
+              mensajeBits.classList.add("visible");
+
+              setTimeout(() => {
+                mensajeVisita.classList.remove("visible");
+                mensajeBits.classList.remove("visible");
+              }, 3000);
+
+              localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+            }
+          } else {
+            document.getElementById("Bits").textContent = cliente.Bits;
+            document.getElementById("Visitas").textContent = cliente.Visitas;
+          }
         } else {
           console.error("Cliente no encontrado");
         }
