@@ -127,14 +127,13 @@
               Bits: nuevosBits
             };
 
-            fetch(bitLogUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(bitLogData)
-            });
-
+            fetch(`${bitLogUrl}/ID/${clienteId}`, {
+  method: "PATCH",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ Bits: nuevosBits })
+});
             document.getElementById("Visitas").textContent = nuevasVisitas;
             document.getElementById("Bits").textContent = nuevosBits; // Actualizar los bits
 
