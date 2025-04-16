@@ -42,13 +42,7 @@
       width: auto;
       height: auto;
       max-height: 200px;
-      margin-top: 0px;
-    }
-    #mensaje, #mensajeBits {
-      color: #B6B6B6;
-      font-size: 14px;
-      display: none;
-      margin-top: -20px;
+      margin-top: -10px;
     }
   </style>
 </head>
@@ -61,14 +55,12 @@
   <img id="circuloImagen" src="" alt="Icono de círculo">
 
   <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
-
-  <!-- Mensajes de acreditación -->
-  <p id="mensaje">+1 visita acreditada</p>
-  <p id="mensajeBits">+50 bits acreditados</p>
-
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
+
+  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
+  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
   <script>
     const clienteId = "001";
@@ -87,7 +79,6 @@
         const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
           const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-          const nuevosBits = parseInt(cliente.Bits || 0) + 50;
 
           // Mostrar datos
           document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
@@ -102,7 +93,7 @@
             document.getElementById("circuloImagen").src = imagenCírculo;
           }
 
-          // Actualizar visitas y bits si auth es correcto
+          // Actualizar visitas si auth es correcto
           const urlParams = new URLSearchParams(window.location.search);
           const authParam = urlParams.get("auth");
 
@@ -110,12 +101,33 @@
             const updatedData = {
               ID: cliente.ID,
               Nombre: cliente.Nombre,
-              Bits: nuevosBits,
+              Bits: cliente.Bits,
               Ranking: cliente.Ranking,
               Círculo: cliente.Círculo,
               Visitas: nuevasVisitas
             };
+// Registrar los 50 bits en la pestaña bit_logs
+const bitLogsApi = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Reemplaza con tu endpoint de Sheet.best
+const fechaActual = new Date().toISOString();
 
+fetch(bitLogsApi, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    ID: cliente.ID,
+    Nombre: cliente.Nombre,
+    Fecha: fechaActual,
+    Bits: 50
+  })
+})
+.then(() => {
+  console.log("Registro de bits creado correctamente.");
+})
+.catch(error => {
+  console.error("Error al registrar bits:", error);
+});
             fetch(`${apiUrl}/ID/${clienteId}`, {
               method: "PUT",
               headers: {
@@ -124,24 +136,24 @@
               body: JSON.stringify(updatedData)
             });
 
-            // Actualizar números en pantalla
             document.getElementById("Visitas").textContent = nuevasVisitas;
-            document.getElementById("Bits").textContent = nuevosBits;
-
-            // Mostrar mensajes de acreditación
-            const mensaje = document.getElementById("mensaje");
-            const mensajeBits = document.getElementById("mensajeBits");
-            mensaje.style.display = "block";
-            mensajeBits.style.display = "block";
-
-            setTimeout(() => {
-              mensaje.style.display = "none";
-              mensajeBits.style.display = "none";
-            }, 3000);
           }
         } else {
           console.error("Cliente no encontrado");
         }
+      });
+  </script>
+
+  <script>
+    fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
+      .then(response => response.json())
+      .then(data => {
+        if (data.evento_activo && data.url) {
+          window.location.href = data.url;
+        }
+      })
+      .catch(error => {
+        console.error("Error al cargar eventos:", error);
       });
   </script>
 
