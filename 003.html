@@ -103,52 +103,59 @@
           const authParam = urlParams.get("auth");
 
           if (authParam === secret) {
-            const updatedData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: nuevosBits, // Actualizar bits
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo,
-              Visitas: nuevasVisitas
-            };
+  const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+  const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
 
-            fetch(`${apiUrl}/ID/${clienteId}`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(updatedData)
-            });
+  const updatedData = {
+    ID: cliente.ID,
+    Nombre: cliente.Nombre,
+    Bits: nuevosBits,
+    Ranking: cliente.Ranking,
+    Círculo: cliente.Círculo,
+    Visitas: nuevasVisitas
+  };
 
-            // Aquí estamos actualizando la hoja de bit_logs
-            const bitLogData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: nuevosBits
-            };
+  // Actualizar la hoja principal
+  fetch(`${apiUrl}/ID/${clienteId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updatedData)
+  });
 
-            fetch(`${bitLogUrl}/ID/${clienteId}`, {
-  method: "PATCH",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ Bits: nuevosBits })
-});
-            document.getElementById("Visitas").textContent = nuevasVisitas;
-            document.getElementById("Bits").textContent = nuevosBits; // Actualizar los bits
+  // Registrar el incremento en bit_logs
+  const bitLogData = {
+    ID: cliente.ID,
+    Nombre: cliente.Nombre,
+    Incremento: 50,
+    Fecha: new Date().toISOString()
+  };
 
-            // Mostrar mensajes de visita y bits acreditados
-            const mensajeVisita = document.getElementById("mensajeVisita");
-            mensajeVisita.style.display = "block";
+  fetch(bitLogUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(bitLogData)
+  });
 
-            const mensajeBits = document.getElementById("mensajeBits");
-            mensajeBits.style.display = "block";
+  // Actualizar la interfaz
+  document.getElementById("Visitas").textContent = nuevasVisitas;
+  document.getElementById("Bits").textContent = nuevosBits;
 
-            setTimeout(() => {
-              mensajeVisita.style.display = "none";
-              mensajeBits.style.display = "none";
-            }, 3000);
-          }
+  // Mostrar mensajes de acreditación
+  const mensajeVisita = document.getElementById("mensajeVisita");
+  mensajeVisita.style.display = "block";
+
+  const mensajeBits = document.getElementById("mensajeBits");
+  mensajeBits.style.display = "block";
+
+  setTimeout(() => {
+    mensajeVisita.style.display = "none";
+    mensajeBits.style.display = "none";
+  }, 3000);
+}
         } else {
           console.error("Cliente no encontrado");
         }
