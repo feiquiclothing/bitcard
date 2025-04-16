@@ -80,6 +80,7 @@
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
+        console.log("Datos de clientes recibidos:", data);  // Verifica si los datos se están recibiendo correctamente
         const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
           const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
@@ -119,6 +120,12 @@
                 "Content-Type": "application/json"
               },
               body: JSON.stringify(updatedData)
+            })
+            .then(() => {
+              console.log("Datos actualizados en feiqui_clientes");
+            })
+            .catch(error => {
+              console.error("Error al actualizar feiqui_clientes:", error);
             });
 
             // Actualizar la hoja bit_logs con los nuevos bits
@@ -159,6 +166,9 @@
         } else {
           console.error("Cliente no encontrado");
         }
+      })
+      .catch(error => {
+        console.error("Error al obtener datos de la API:", error);
       });
   </script>
 
