@@ -67,7 +67,8 @@
 
   <script>
     const clienteId = "001";
-    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
+    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Esta URL es para la hoja principal.
+    const bitLogUrl = "https://api.sheetbest.com/sheets/bit_logs"; // Cambiar a la URL de la hoja bit_logs
     const secret = "111";
 
     const imagenesPorCirculo = {
@@ -117,6 +118,21 @@
                 "Content-Type": "application/json"
               },
               body: JSON.stringify(updatedData)
+            });
+
+            // Aquí estamos actualizando la hoja de bit_logs
+            const bitLogData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Bits: nuevosBits
+            };
+
+            fetch(bitLogUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(bitLogData)
             });
 
             document.getElementById("Visitas").textContent = nuevasVisitas;
