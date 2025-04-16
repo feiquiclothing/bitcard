@@ -42,8 +42,19 @@
       width: auto;
       height: auto;
       max-height: 200px;
-      margin-top: 0px;
+      margin-top: -10px;
     }
+    .mensaje {
+  color: #B6B6B6;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+  margin: 5px 0 0;
+  height: 18px; /* para evitar que el texto haga saltar el diseño */
+}
+.mensaje.visible {
+  opacity: 1;
+}
   </style>
 </head>
 <body>
@@ -54,85 +65,132 @@
   <h1 id="circulo">CÍRCULO:</h1>
   <img id="circuloImagen" src="" alt="Icono de círculo">
 
-  <div class="count">Bits: <strong id="Bits">0</strong></div>
-  
+  <div class="count">
+  Bits: <strong id="Bits">0</strong>
+  <p id="mensajeBits" style="color: #B6B6B6; font-size: 14px; display: none; margin: 5px 0 0;">+50 bits acreditados</p>
+</div>
+
+<div class="count">
+  Visitas: <strong id="Visitas">0</strong>
+  <p id="mensajeVisita" style="color: #B6B6B6; font-size: 14px; display: none; margin: 5px 0 0;">+1 visita acreditada</p>
+</div>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
-<div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <div class="quote">Tu presencia quedó registrada por el sistema.</div>
 
-<!-- Mensaje de visita acreditada -->
-<p id="mensaje" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+1 visita acreditada</p>
 
-<div class="quote">Tu presencia quedó registrada por el sistema.</div>
 
-<script>
-  const clienteId = "001";
-  const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
-  const secret = "111";
+  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
+  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
-  const imagenesPorCirculo = {
-    "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
-    "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
-    "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+  <script>
+    const clienteId = "001";
+    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Esta URL es para la hoja principal.
+    const bitLogUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b/tabs/bit_logs"; // Cambiar a la URL de la hoja bit_logs
+    const secret = "111";
+
+    const imagenesPorCirculo = {
+      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
+      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+    };
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.ID === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+          const nuevosBits = parseInt(cliente.Bits || 0) + 50; // Aumenta 50 bits
+
+          // Mostrar datos
+          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+          document.getElementById("Bits").textContent = nuevosBits; // Mostrar los nuevos bits
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+
+          // Imagen dinámica por círculo
+          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          if (imagenCírculo) {
+            document.getElementById("circuloImagen").src = imagenCírculo;
+          }
+
+          // Actualizar visitas y bits si auth es correcto
+          const urlParams = new URLSearchParams(window.location.search);
+          const authParam = urlParams.get("auth");
+if (authParam === secret) {
+  const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+  const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+
+  const updatedData = {
+    ID: cliente.ID,
+    Nombre: cliente.Nombre,
+    Bits: nuevosBits,
+    Ranking: cliente.Ranking,
+    Círculo: cliente.Círculo,
+    Visitas: nuevasVisitas
   };
 
-  fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-      const cliente = data.find(c => c.ID === clienteId);
-      if (cliente) {
-        const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+  // Actualizar la hoja principal
+  fetch(`${apiUrl}/ID/${clienteId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updatedData)
+  });
 
-        // Mostrar datos
-        document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-        document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-        document.getElementById("Bits").textContent = cliente.Bits;
-        document.getElementById("Visitas").textContent = cliente.Visitas;
-        document.getElementById("Ranking").textContent = cliente.Ranking;
+  // Registrar el incremento en bit_logs
+  const bitLogData = {
+    ID: cliente.ID,
+    Nombre: cliente.Nombre,
+    Incremento: 50,
+    Fecha: new Date().toISOString()
+  };
 
-        // Imagen dinámica por círculo
-        const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
-        if (imagenCírculo) {
-          document.getElementById("circuloImagen").src = imagenCírculo;
+  fetch(bitLogUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(bitLogData)
+  });
+
+  // Actualizar la interfaz
+  document.getElementById("Visitas").textContent = nuevasVisitas;
+  document.getElementById("Bits").textContent = nuevosBits;
+
+  // Mostrar mensajes de acreditación con fade-out
+const mensajeVisita = document.getElementById("mensajeVisita");
+const mensajeBits = document.getElementById("mensajeBits");
+
+mensajeVisita.classList.add("visible");
+mensajeBits.classList.add("visible");
+
+setTimeout(() => {
+  mensajeVisita.classList.remove("visible");
+  mensajeBits.classList.remove("visible");
+}, 3000);
+}
+          
+        } else {
+          console.error("Cliente no encontrado");
         }
+      });
+  </script>
 
-        // Actualizar visitas si auth es correcto
-        const urlParams = new URLSearchParams(window.location.search);
-        const authParam = urlParams.get("auth");
-
-        if (authParam === secret) {
-          const updatedData = {
-            ID: cliente.ID,
-            Nombre: cliente.Nombre,
-            Bits: cliente.Bits,
-            Ranking: cliente.Ranking,
-            Círculo: cliente.Círculo,
-            Visitas: nuevasVisitas
-          };
-
-          fetch(`${apiUrl}/ID/${clienteId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(updatedData)
-          });
-
-          // Actualizar el número en pantalla
-          document.getElementById("Visitas").textContent = nuevasVisitas;
-
-          // Mostrar mensaje de "+1 visita acreditada"
-          const mensaje = document.getElementById("mensaje");
-          mensaje.style.display = "block";
-
-          setTimeout(() => {
-            mensaje.style.display = "none";
-          }, 3000);
+  <script>
+    fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
+      .then(response => response.json())
+      .then(data => {
+        if (data.evento_activo && data.url) {
+          window.location.href = data.url;
         }
-      } else {
-        console.error("Cliente no encontrado");
-      }
-    });
-</script>
+      })
+      .catch(error => {
+        console.error("Error al cargar eventos:", error);
+      });
+  </script>
 
 </body>
 </html>
