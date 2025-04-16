@@ -98,36 +98,48 @@
           const authParam = urlParams.get("auth");
 
           if (authParam === secret) {
-            const updatedData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: cliente.Bits,
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo,
-              Visitas: nuevasVisitas
-            };
-// Registrar los 50 bits en la pestaña bit_logs
-const bitLogsApi = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Reemplaza con tu endpoint de Sheet.best
-const fechaActual = new Date().toISOString();
-
-fetch(bitLogsApi, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
+  const updatedData = {
     ID: cliente.ID,
     Nombre: cliente.Nombre,
-    Fecha: fechaActual,
-    Bits: 50
+    Bits: cliente.Bits,
+    Ranking: cliente.Ranking,
+    Círculo: cliente.Círculo,
+    Visitas: nuevasVisitas
+  };
+
+  fetch(`${apiUrl}/ID/${clienteId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updatedData)
+  });
+
+  document.getElementById("Visitas").textContent = nuevasVisitas;
+
+  // Registrar los 50 bits en la pestaña bit_logs
+  const bitLogsApi = "https://api.sheetbest.com/sheets/TU_ENDPOINT_DE_SHEETBEST"; // Reemplaza con tu endpoint de Sheet.best
+  const fechaActual = new Date().toISOString();
+
+  fetch(bitLogsApi, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      ID: cliente.ID,
+      Nombre: cliente.Nombre,
+      Fecha: fechaActual,
+      Bits: 50
+    })
   })
-})
-.then(() => {
-  console.log("Registro de bits creado correctamente.");
-})
-.catch(error => {
-  console.error("Error al registrar bits:", error);
-});
+  .then(() => {
+    console.log("Registro de bits creado correctamente.");
+  })
+  .catch(error => {
+    console.error("Error al registrar bits:", error);
+  });
+}
             fetch(`${apiUrl}/ID/${clienteId}`, {
               method: "PUT",
               headers: {
