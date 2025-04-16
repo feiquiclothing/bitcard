@@ -6,6 +6,17 @@
   <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <style>
+    .mensaje {
+  color: #B6B6B6;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+  margin: 5px 0 0;
+  height: 18px; /* para evitar que el texto haga saltar el diseño */
+}
+.mensaje.visible {
+  opacity: 1;
+}
     body {
       background-color: white;
       color: #B6B6B6;
@@ -44,17 +55,6 @@
       max-height: 200px;
       margin-top: -10px;
     }
-    .mensaje {
-  color: #B6B6B6;
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 1.5s ease-in-out;
-  margin: 5px 0 0;
-  height: 18px; /* para evitar que el texto haga saltar el diseño */
-}
-.mensaje.visible {
-  opacity: 1;
-}
   </style>
 </head>
 <body>
@@ -160,7 +160,7 @@ if (authParam === secret) {
   document.getElementById("Visitas").textContent = nuevasVisitas;
   document.getElementById("Bits").textContent = nuevosBits;
 
-  // Mostrar mensajes de acreditación con fade-out
+ // Mostrar mensajes de acreditación con fade-out
 const mensajeVisita = document.getElementById("mensajeVisita");
 const mensajeBits = document.getElementById("mensajeBits");
 
