@@ -1,48 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script>
-  fetch("https://bitcard.feiqui.com/data/eventos.json")
-    .then(response => response.json())
-    .then(data => {
-      if (data.evento_activo && data.url) {
-        window.location.href = data.url;
-      }
-    })
-    .catch(error => {
-      console.error("Error al cargar eventos:", error);
-    });
-</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi BitCard</title>
+  <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-    }
-
-    img {
-      width: 80%;
-      max-width: 400px; /* o lo que prefieras */
-      height: auto;
-      margin-top: -50px; /* ajustá este valor para acercar o alejar */
-    }
-  </style>
-</head>
-<body>
-
-  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo" style="margin-top: -120px;">
-
-</body>
-</html> 
   <style>
     body {
       background-color: white;
@@ -53,8 +15,14 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: -90;
+      margin: 0;
       text-align: center;
+    }
+    img {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -120px;
     }
     .count {
       font-size: 2em;
@@ -67,17 +35,115 @@
       margin-top: 30px;
       margin-bottom: 45px;
     }
+    h1 {
+      margin: 0;
+    }
+    #circuloImagen {
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      margin-top: 0px;
+    }
+    #mensaje, #mensajeBits {
+      color: #B6B6B6;
+      font-size: 14px;
+      display: none;
+      margin-top: -20px;
+    }
   </style>
 </head>
 <body>
-  <p style="margin-top: -75px;"><h1>N003/SUJETO: NOMBRE</h1></p>
-  <p style="margin-top: -75px;"><h1>STATUS: CÍRCULO NULL</h1></p> <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250" alt="null" style="margin-top: -30px; width: auto; height: auto; display: inline-block;">
- <div class="count">Visitas: <strong>0</strong></div>
-  <div class="count">Bits: <strong>0</strong></div>
+
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
+  
+  <h1 id="nombre">SUJETO:</h1>
+  <h1 id="circulo">CÍRCULO:</h1>
+  <img id="circuloImagen" src="" alt="Icono de círculo">
+
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+
+  <!-- Mensajes de acreditación -->
+  <p id="mensaje">+1 visita acreditada</p>
+  <p id="mensajeBits">+50 bits acreditados</p>
+
   <div class="quote">Tu presencia quedó registrada por el sistema.</div>
-  
-  <a style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">ir a </a> <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; "margin-top: -10px; text-decoration: none;">feiqui.com</a>
-  
+
+  <script>
+    const clienteId = "001";
+    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
+    const secret = "111";
+
+    const imagenesPorCirculo = {
+      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
+      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+    };
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const cliente = data.find(c => c.ID === clienteId);
+        if (cliente) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+          const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+
+          // Mostrar datos
+          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+
+          // Imagen dinámica por círculo
+          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          if (imagenCírculo) {
+            document.getElementById("circuloImagen").src = imagenCírculo;
+          }
+
+          // Actualizar visitas y bits si auth es correcto
+          const urlParams = new URLSearchParams(window.location.search);
+          const authParam = urlParams.get("auth");
+
+          if (authParam === secret) {
+            const updatedData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Bits: nuevosBits,
+              Ranking: cliente.Ranking,
+              Círculo: cliente.Círculo,
+              Visitas: nuevasVisitas
+            };
+
+            fetch(`${apiUrl}/ID/${clienteId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(updatedData)
+            });
+
+            // Actualizar números en pantalla
+            document.getElementById("Visitas").textContent = nuevasVisitas;
+            document.getElementById("Bits").textContent = nuevosBits;
+
+            // Mostrar mensajes de acreditación
+            const mensaje = document.getElementById("mensaje");
+            const mensajeBits = document.getElementById("mensajeBits");
+            mensaje.style.display = "block";
+            mensajeBits.style.display = "block";
+
+            setTimeout(() => {
+              mensaje.style.display = "none";
+              mensajeBits.style.display = "none";
+            }, 3000);
+          }
+        } else {
+          console.error("Cliente no encontrado");
+        }
+      });
+  </script>
+
 </body>
 </html>
-
