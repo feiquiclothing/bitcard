@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Recolecta Bits</title>
+  <title>BitCatcher</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
@@ -37,15 +37,24 @@
       font-size: 20px;
       color: black;
     }
+    #logged {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-family: monospace;
+      font-size: 16px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
 
 <canvas id="gameCanvas"></canvas>
 <div id="score">Bits: 0</div>
+<div id="logged"></div>
 
 <div id="startScreen">
-  <h2>RECOLECTA BITS</h2>
+  <h2>BITCATCHER</h2>
   <button onclick="startGame()">Comenzar</button>
 </div>
 
@@ -70,6 +79,10 @@ canvas.width = w;
 canvas.height = h;
 
 let clienteID = new URLSearchParams(window.location.search).get('id');
+if (clienteID) {
+  document.getElementById("logged").textContent = "Logueado como: " + clienteID;
+}
+
 let player, bits = [], enemigos = [], score = 0;
 let gravity = 0.6, lift = -12, velocity = 0;
 let isGameOver = false, frame = 0;
