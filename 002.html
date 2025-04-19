@@ -2,188 +2,60 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitCard</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Test de Círculo Animado</title>
   <style>
     body {
-      background-color: white;
-      color: #B6B6B6;
-      font-family: monospace;
+      background: #111;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      text-align: center;
+      color: white;
+      font-family: monospace;
     }
 
     img {
-      width: 80%;
-      max-width: 400px;
-      height: auto;
-      margin-top: -120px;
-    }
-
-    .count {
-      font-size: 2em;
-      margin: 15px 0;
-      margin-top: 10px;
-    }
-
-    .quote {
-      opacity: 0.6;
-      font-style: italic;
-      margin-top: 30px;
-      margin-bottom: 45px;
-    }
-
-    h1 {
-      margin: 0;
-    }
-
-    #circuloImagen {
-      width: auto;
-      height: auto;
       max-height: 200px;
-      margin-top: -10px;
+      margin: 20px;
     }
 
-    .mensaje {
-      color: #B6B6B6;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
+    /* Animaciones */
+    @keyframes fadePulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
     }
 
-    .visible {
-      opacity: 1;
+    @keyframes scalePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { filter: drop-shadow(0 0 5px #e0e0e0); }
+      50% { filter: drop-shadow(0 0 20px #ffffff); }
+    }
+
+    .circulo-null {
+      animation: fadePulse 2s infinite ease-in-out;
+    }
+
+    .circulo-entry {
+      animation: scalePulse 2s infinite ease-in-out;
+    }
+
+    .circulo-posthuman {
+      animation: glowPulse 2s infinite ease-in-out;
     }
   </style>
 </head>
 <body>
 
-  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
-  
-  <h1 id="nombre">SUJETO:</h1>
-  <h1 id="circulo">CÍRCULO:</h1>
-  <img id="circuloImagen" src="" alt="Icono de círculo">
-
-  <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <p id="mensajeBits" class="mensaje">+50 bits acreditados</p>
-  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
-  <p id="mensajeVisita" class="mensaje">+1 visita acreditada</p>
-  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
-  <div class="quote">Tu presencia quedó registrada por el sistema.</div>
-
-  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
-  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
-
-  <script>
-    const clienteId = "001";
-    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b";
-    const bitLogUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b/tabs/bit_logs";
-    const secret = "111";
-
-    const imagenesPorCirculo = {
-      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
-      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
-      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
-    };
-
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        const cliente = data.find(c => c.ID === clienteId);
-        if (cliente) {
-          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-          document.getElementById("Ranking").textContent = cliente.Ranking;
-
-          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
-          if (imagenCírculo) {
-            document.getElementById("circuloImagen").src = imagenCírculo;
-          }
-
-          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
-          const ahora = new Date();
-          const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
-
-          if (puedeAcreditar) {
-            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-            const nuevosBits = parseInt(cliente.Bits || 0) + 50;
-
-            document.getElementById("Bits").textContent = nuevosBits;
-            document.getElementById("Visitas").textContent = nuevasVisitas;
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const authParam = urlParams.get("auth");
-
-            if (authParam === secret) {
-              const updatedData = {
-                ID: cliente.ID,
-                Nombre: cliente.Nombre,
-                Bits: nuevosBits,
-                Ranking: cliente.Ranking,
-                Círculo: cliente.Círculo,
-                Visitas: nuevasVisitas
-              };
-
-              fetch(`${apiUrl}/ID/${clienteId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updatedData)
-              });
-
-              const bitLogData = {
-                ID: cliente.ID,
-                Nombre: cliente.Nombre,
-                Incremento: 50,
-                Fecha: new Date().toISOString()
-              };
-
-              fetch(bitLogUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bitLogData)
-              });
-
-              // Mostrar mensajes
-              const mensajeVisita = document.getElementById("mensajeVisita");
-              const mensajeBits = document.getElementById("mensajeBits");
-              mensajeVisita.classList.add("visible");
-              mensajeBits.classList.add("visible");
-
-              setTimeout(() => {
-                mensajeVisita.classList.remove("visible");
-                mensajeBits.classList.remove("visible");
-              }, 3000);
-
-              localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
-            }
-          } else {
-            document.getElementById("Bits").textContent = cliente.Bits;
-            document.getElementById("Visitas").textContent = cliente.Visitas;
-          }
-        } else {
-          console.error("Cliente no encontrado");
-        }
-      });
-  </script>
-
-  <script>
-    fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
-      .then(response => response.json())
-      .then(data => {
-        if (data.evento_activo && data.url) {
-          window.location.href = data.url;
-        }
-      })
-      .catch(error => {
-        console.error("Error al cargar eventos:", error);
-      });
-  </script>
+  <h1>CÍRCULO: POSTHUMAN</h1>
+  <img id="circuloImagen"
+       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+       class="circulo-posthuman"
+       alt="Círculo animado" />
 
 </body>
 </html>
