@@ -3,177 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitCard</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <title>ECOS DEL CÍRCULO</title>
   <style>
     body {
-      background-color: white;
-      color: #B6B6B6;
+      background-color: black;
+      color: white;
       font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+      font-size: 1.1em;
+    }
+    .fragment {
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+      margin-bottom: 1em;
+    }
+    .fragment.visible {
+      opacity: 1;
+    }
+    #next {
+      display: block;
+      margin: 40px auto;
+      padding: 10px 20px;
+      font-size: 1em;
+      background: none;
+      border: 1px solid white;
+      color: white;
+      cursor: pointer;
+    }
+    #endMessage {
+      display: none;
       text-align: center;
-    }
-    img {
-      width: 80%;
-      max-width: 400px;
-      height: auto;
-      margin-top: -120px;
-    }
-    .count {
-      font-size: 2em;
-      margin: 15px 0;
-      margin-top: 10px;
-    }
-    .quote {
-      opacity: 0.6;
+      margin-top: 60px;
       font-style: italic;
-      margin-top: 30px;
-      margin-bottom: 45px;
-    }
-    h1 {
-      margin: 0;
-    }
-    #circuloImagen {
-      width: auto;
-      height: auto;
-      max-height: 200px;
-      margin-top: -10px;
     }
   </style>
 </head>
 <body>
-
-  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
-  
-  <h1 id="nombre">SUJETO:</h1>
-  <h1 id="circulo">CÍRCULO:</h1>
-  <img id="circuloImagen" src="" alt="Icono de círculo">
-
-  <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
-  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
-  <div class="quote">Tu presencia quedó registrada por el sistema.</div>
-
-  <p id="mensajeBits" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+50 bits acreditados</p>
-  <p id="mensajeVisita" style="color: #B6B6B6; font-size: 14px; display: none; margin-top: -20px;">+1 visita acreditada</p>
-
-  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
-  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
-
-  <script>
-    const clienteId = "001";
-    const apiUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b"; // Esta URL es para la hoja principal.
-    const bitLogUrl = "https://api.sheetbest.com/sheets/ed93a752-33f3-4320-b34d-09212281bd8b/tabs/bit_logs"; // Cambiar a la URL de la hoja bit_logs
-    const secret = "111";
-
-    const imagenesPorCirculo = {
-      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
-      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
-      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
-    };
-
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        const cliente = data.find(c => c.ID === clienteId);
-        if (cliente) {
-          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-          const nuevosBits = parseInt(cliente.Bits || 0) + 50; // Aumenta 50 bits
-
-          // Mostrar datos
-          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-          document.getElementById("Bits").textContent = nuevosBits; // Mostrar los nuevos bits
-          document.getElementById("Visitas").textContent = cliente.Visitas;
-          document.getElementById("Ranking").textContent = cliente.Ranking;
-
-          // Imagen dinámica por círculo
-          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
-          if (imagenCírculo) {
-            document.getElementById("circuloImagen").src = imagenCírculo;
-          }
-
-          // Actualizar visitas y bits si auth es correcto
-          const urlParams = new URLSearchParams(window.location.search);
-          const authParam = urlParams.get("auth");
-if (authParam === secret) {
-  const nuevosBits = parseInt(cliente.Bits || 0) + 50;
-  const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-
-  const updatedData = {
-    ID: cliente.ID,
-    Nombre: cliente.Nombre,
-    Bits: nuevosBits,
-    Ranking: cliente.Ranking,
-    Círculo: cliente.Círculo,
-    Visitas: nuevasVisitas
-  };
-
-  // Actualizar la hoja principal
-  fetch(`${apiUrl}/ID/${clienteId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(updatedData)
-  });
-
-  // Registrar el incremento en bit_logs
-  const bitLogData = {
-    ID: cliente.ID,
-    Nombre: cliente.Nombre,
-    Incremento: 50,
-    Fecha: new Date().toISOString()
-  };
-
-  fetch(bitLogUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(bitLogData)
-  });
-
-  // Actualizar la interfaz
-  document.getElementById("Visitas").textContent = nuevasVisitas;
-  document.getElementById("Bits").textContent = nuevosBits;
-
-  // Mostrar mensajes de acreditación
-  const mensajeVisita = document.getElementById("mensajeVisita");
-  mensajeVisita.style.display = "block";
-
-  const mensajeBits = document.getElementById("mensajeBits");
-  mensajeBits.style.display = "block";
-
-  setTimeout(() => {
-    mensajeVisita.style.display = "none";
-    mensajeBits.style.display = "none";
-  }, 3000);
-}
-          
-        } else {
-          console.error("Cliente no encontrado");
-        }
-      });
-  </script>
+  <div id="text">
+    <div class="fragment">Te levantás.</div>
+    <div class="fragment">Ni temprano ni tarde.</div>
+    <div class="fragment">Una hora sin nombre.</div>
+    <div class="fragment">El celular tiene 4 notificaciones. Las tres primeras son lo de siempre.</div>
+    <div class="fragment">La cuarta no carga. No hay remitente, no hay ícono. Solo dice:</div>
+    <div class="fragment"><em>“confirmado”</em></div>
+    <div class="fragment">Tocás para abrir, pero desaparece. No se va al historial. No deja rastro.</div>
+    <div class="fragment">No te asustás. Pero te quedás pensando.</div>
+    <div class="fragment">...</div>
+    <div class="fragment">Vas a laburar. El ómnibus llega puntual. La SUBE pasa sin problemas.</div>
+    <div class="fragment">Pero el chofer te mira un segundo más de lo normal.</div>
+    <div class="fragment">Sentís que te reconoce. Pero no sabés de dónde.</div>
+    <div class="fragment">...</div>
+    <div class="fragment">En la calle, todo está igual. Excepto un cartel que no debería estar ahí.</div>
+    <div class="fragment">Es de esos de “ENTRA AL CÍRCULO”, pero está despegado.</div>
+    <div class="fragment">Abajo, alguien escribió con marcador grueso:</div>
+    <div class="fragment"><em>“ya lo hiciste.”</em></div>
+    <div class="fragment">No sabés si lo escribieron para vos. Capaz ni es para nadie.</div>
+    <div class="fragment">...</div>
+    <div class="fragment">Llegás al trabajo. Tenés que escanear tu tarjeta.</div>
+    <div class="fragment">Lo hacés. La máquina pita. Pero no muestra nada.</div>
+    <div class="fragment">Te quedás esperando. No sale ni “aceptado” ni “error”.</div>
+    <div class="fragment">Después de un rato, aparece una línea chiquita, gris:</div>
+    <div class="fragment"><em>“acceso normalizado”</em></div>
+    <div class="fragment">Nunca habías leído eso antes.</div>
+    <div class="fragment">...</div>
+    <div class="fragment">Volvés a casa en silencio. El día pasó. No pasó nada.</div>
+    <div class="fragment">Pero hay una incomodidad suave. Como cuando te olvidás de algo.</div>
+    <div class="fragment">Como cuando sabés que algo cambió, pero no sabés qué.</div>
+  </div>
+  <button id="next">Continuar</button>
+  <div id="endMessage">Capítulo 1 terminado.</div>
 
   <script>
-    fetch("https://bitcard.feiqui.com/data/eventos.json?" + Date.now())
-      .then(response => response.json())
-      .then(data => {
-        if (data.evento_activo && data.url) {
-          window.location.href = data.url;
-        }
-      })
-      .catch(error => {
-        console.error("Error al cargar eventos:", error);
-      });
-  </script>
+    const fragments = document.querySelectorAll('.fragment');
+    const nextBtn = document.getElementById('next');
+    const endMessage = document.getElementById('endMessage');
+    let index = 0;
 
+    function showNext() {
+      if (index < fragments.length) {
+        fragments[index].classList.add('visible');
+        index++;
+      } else {
+        nextBtn.style.display = 'none';
+        endMessage.style.display = 'block';
+      }
+    }
+
+    nextBtn.addEventListener('click', showNext);
+    showNext();
+  </script>
 </body>
 </html>
