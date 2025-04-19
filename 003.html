@@ -17,10 +17,14 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      overflow: hidden;
     }
     #text {
       flex: 1;
-      overflow-y: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
     }
     .fragment {
       opacity: 0;
@@ -49,54 +53,59 @@
   </style>
 </head>
 <body>
-  <div id="text">
-    <div class="fragment">Te levantás.</div>
-    <div class="fragment">Ni temprano ni tarde.</div>
-    <div class="fragment">Una hora sin nombre.</div>
-    <div class="fragment">El celular tiene 4 notificaciones. Las tres primeras son lo de siempre.</div>
-    <div class="fragment">La cuarta no carga. No hay remitente, no hay ícono. Solo dice:</div>
-    <div class="fragment"><em>“confirmado”</em></div>
-    <div class="fragment">Tocás para abrir, pero desaparece. No se va al historial. No deja rastro.</div>
-    <div class="fragment">No te asustás. Pero te quedás pensando.</div>
-    <div class="fragment">...</div>
-    <div class="fragment">Vas a laburar. El ómnibus llega puntual. La SUBE pasa sin problemas.</div>
-    <div class="fragment">Pero el chofer te mira un segundo más de lo normal.</div>
-    <div class="fragment">Sentís que te reconoce. Pero no sabés de dónde.</div>
-    <div class="fragment">...</div>
-    <div class="fragment">En la calle, todo está igual. Excepto un cartel que no debería estar ahí.</div>
-    <div class="fragment">Es de esos de “ENTRA AL CÍRCULO”, pero está despegado.</div>
-    <div class="fragment">Abajo, alguien escribió con marcador grueso:</div>
-    <div class="fragment"><em>“ya lo hiciste.”</em></div>
-    <div class="fragment">No sabés si lo escribieron para vos. Capaz ni es para nadie.</div>
-    <div class="fragment">...</div>
-    <div class="fragment">Llegás al trabajo. Tenés que escanear tu tarjeta.</div>
-    <div class="fragment">Lo hacés. La máquina pita. Pero no muestra nada.</div>
-    <div class="fragment">Te quedás esperando. No sale ni “aceptado” ni “error”.</div>
-    <div class="fragment">Después de un rato, aparece una línea chiquita, gris:</div>
-    <div class="fragment"><em>“acceso normalizado”</em></div>
-    <div class="fragment">Nunca habías leído eso antes.</div>
-    <div class="fragment">...</div>
-    <div class="fragment">Volvés a casa en silencio. El día pasó. No pasó nada.</div>
-    <div class="fragment">Pero hay una incomodidad suave. Como cuando te olvidás de algo.</div>
-    <div class="fragment">Como cuando sabés que algo cambió, pero no sabés qué.</div>
-  </div>
+  <div id="text"></div>
   <button id="next">➤</button>
   <div id="endMessage">Capítulo 1 terminado.</div>
 
   <script>
-    const fragments = document.querySelectorAll('.fragment');
+    const fragmentTexts = [
+      "Te levantás.",
+      "Ni temprano ni tarde.",
+      "Una hora sin nombre.",
+      "El celular tiene 4 notificaciones. Las tres primeras son lo de siempre.",
+      "La cuarta no carga. No hay remitente, no hay ícono. Solo dice:",
+      "\u201cconfirmado\u201d",
+      "Tocás para abrir, pero desaparece. No se va al historial. No deja rastro.",
+      "No te asustás. Pero te quedás pensando.",
+      "...",
+      "Vas a laburar. El ómnibus llega puntual. La SUBE pasa sin problemas.",
+      "Pero el chofer te mira un segundo más de lo normal.",
+      "Sentís que te reconoce. Pero no sabés de dónde.",
+      "...",
+      "En la calle, todo está igual. Excepto un cartel que no debería estar ahí.",
+      "Es de esos de “ENTRA AL CÍRCULO”, pero está despegado.",
+      "Abajo, alguien escribió con marcador grueso:",
+      "\u201cya lo hiciste.\u201d",
+      "No sabés si lo escribieron para vos. Capaz ni es para nadie.",
+      "...",
+      "Llegás al trabajo. Tenés que escanear tu tarjeta.",
+      "Lo hacés. La máquina pita. Pero no muestra nada.",
+      "Te quedás esperando. No sale ni “aceptado” ni “error”.",
+      "Después de un rato, aparece una línea chiquita, gris:",
+      "\u201cacceso normalizado\u201d",
+      "Nunca habías leído eso antes.",
+      "...",
+      "Volvés a casa en silencio. El día pasó. No pasó nada.",
+      "Pero hay una incomodidad suave. Como cuando te olvidás de algo.",
+      "Como cuando sabés que algo cambió, pero no sabés qué."
+    ];
+
+    const textContainer = document.getElementById('text');
     const nextBtn = document.getElementById('next');
     const endMessage = document.getElementById('endMessage');
-    const textContainer = document.getElementById('text');
     let index = 0;
 
     function showNext() {
-      if (index < fragments.length) {
-        fragments[index].classList.add('visible');
+      if (index < fragmentTexts.length) {
+        // Borrar contenido anterior cada 5 fragmentos para mantener pantalla limpia
+        if (index % 5 === 0) {
+          textContainer.innerHTML = '';
+        }
+        const newFragment = document.createElement('div');
+        newFragment.className = 'fragment visible';
+        newFragment.textContent = fragmentTexts[index];
+        textContainer.appendChild(newFragment);
         index++;
-        setTimeout(() => {
-          fragments[index - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }, 100);
       } else {
         nextBtn.style.display = 'none';
         endMessage.style.display = 'block';
