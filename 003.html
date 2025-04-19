@@ -15,6 +15,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      transition: background-color 0.5s ease;
     }
     #scene {
       flex-grow: 1;
@@ -25,6 +26,13 @@
       padding: 40px 20px;
       font-size: 1.1em;
       line-height: 1.6em;
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
+    }
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
     }
     #choices {
       display: flex;
@@ -41,11 +49,24 @@
       font-size: 1em;
       cursor: pointer;
     }
+    #reset {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: none;
+      border: 1px solid white;
+      color: white;
+      padding: 6px 12px;
+      font-family: monospace;
+      font-size: 0.8em;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div id="scene">Te levantás con esa sensación rara. Como si ya hubieras vivido este día.</div>
+  <div id="scene"></div>
   <div id="choices"></div>
+  <button id="reset" onclick="resetProgress()">reiniciar</button>
 
   <script>
     const scenes = [
@@ -113,10 +134,18 @@
     const choicesDiv = document.getElementById('choices');
 
     function renderScene(index) {
+      localStorage.setItem('feiqui_scene', index);
       const scene = scenes[index];
-      sceneDiv.textContent = scene.text;
-      choicesDiv.innerHTML = '';
+      sceneDiv.style.opacity = 0;
+      setTimeout(() => {
+        sceneDiv.textContent = scene.text;
+        sceneDiv.style.animation = 'none';
+        void sceneDiv.offsetWidth; // trigger reflow
+        sceneDiv.style.animation = null;
+        sceneDiv.style.opacity = 1;
+      }, 100);
 
+      choicesDiv.innerHTML = '';
       scene.options.forEach(option => {
         const btn = document.createElement('button');
         btn.className = 'choice';
@@ -127,13 +156,20 @@
           } else {
             sceneDiv.textContent = 'Capítulo 1 finalizado.';
             choicesDiv.innerHTML = '';
+            localStorage.removeItem('feiqui_scene');
           }
         };
         choicesDiv.appendChild(btn);
       });
     }
 
-    renderScene(0);
+    function resetProgress() {
+      localStorage.removeItem('feiqui_scene');
+      renderScene(0);
+    }
+
+    const savedScene = localStorage.getItem('feiqui_scene');
+    renderScene(savedScene ? parseInt(savedScene) : 0);
   </script>
 </body>
 </html>
