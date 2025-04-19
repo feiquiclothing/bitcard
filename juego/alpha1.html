@@ -1,10 +1,202 @@
-fetch('https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec', {
-  method: 'POST',
-  mode: 'no-cors',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    id: "001",
-    bits: 5,
-    score: 5
-  })
-})
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Recolecta Bits</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: monospace;
+      background: #fff;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background: #f0f0f0;
+    }
+    #startScreen, #gameOverScreen {
+      position: absolute;
+      top: 30%;
+      width: 100%;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 10;
+    }
+    #startScreen button, #gameOverScreen button {
+      padding: 10px 20px;
+      font-family: monospace;
+      font-size: 1em;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      font-size: 20px;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="score">Bits: 0</div>
+
+<div id="startScreen">
+  <h2>RECOLECTA BITS</h2>
+  <button onclick="startGame()">Comenzar</button>
+</div>
+
+<div id="gameOverScreen" style="display:none">
+  <h2>GAME OVER</h2>
+  <p>Bits recolectados: <span id="bitCount">0</span></p>
+  <div id="topScores" style="margin-top: 20px;">
+    <h3>TOP 3 GLOBAL</h3>
+    <ol id="topList"></ol>
+  </div>
+  <button onclick="startGame()">Volver a jugar</button>
+</div>
+
+<script>
+const feiquiImg = new Image();
+feiquiImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_38e982b1-0287-42c3-8d9d-6c4d47b4ecee.png?v=1745075124';
+
+const resisImg = new Image();
+resisImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_fd1ae55d-ea78-4dba-b0ac-4e5d7854c954.png?v=1745075124';
+
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+let w = window.innerWidth;
+let h = window.innerHeight;
+canvas.width = w;
+canvas.height = h;
+
+let clienteID = new URLSearchParams(window.location.search).get('id');
+let player, bits = [], enemigos = [], score = 0;
+let gravity = 0.6, lift = -12, velocity = 0;
+let isGameOver = false, frame = 0;
+let bitSpeed = 5, enemySpeed = 4, enemyRate = 180;
+
+function startGame() {
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("gameOverScreen").style.display = "none";
+  score = 0;
+  frame = 0;
+  velocity = 0;
+  bits = [];
+  enemigos = [];
+  bitSpeed = 5;
+  enemySpeed = 4;
+  enemyRate = 180;
+  isGameOver = false;
+  player = { x: 50, y: h / 2, size: 40 };
+  document.getElementById("score").textContent = "Bits: 0";
+  requestAnimationFrame(update);
+}
+
+function jump() {
+  if (!isGameOver) velocity = lift;
+}
+
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  jump();
+}, { passive: false });
+
+function update() {
+  frame++;
+  ctx.clearRect(0, 0, w, h);
+
+  velocity += gravity;
+  player.y += velocity;
+  if (player.y + player.size > h) {
+    player.y = h - player.size;
+    gameOver();
+    return;
+  }
+
+  ctx.drawImage(feiquiImg, player.x, player.y, player.size, player.size);
+
+  if (frame % 300 === 0) {
+    bitSpeed += 0.5;
+    enemySpeed += 0.5;
+    if (enemyRate > 90) enemyRate -= 10;
+  }
+
+  if (frame % 60 === 0) {
+    bits.push({ x: w, y: Math.random() * (h - 30), size: 15 });
+  }
+
+  if (frame % enemyRate === 0) {
+    enemigos.push({ x: w, y: Math.random() * (h - 40), size: 40 });
+  }
+
+  for (let i = 0; i < bits.length; i++) {
+    bits[i].x -= bitSpeed;
+    ctx.fillStyle = "black";
+    ctx.fillRect(bits[i].x, bits[i].y, bits[i].size, bits[i].size);
+
+    if (collides(player, bits[i])) {
+      score++;
+      bits.splice(i, 1);
+      i--;
+      document.getElementById("score").textContent = "Bits: " + score;
+    }
+  }
+
+  for (let i = 0; i < enemigos.length; i++) {
+    enemigos[i].x -= enemySpeed;
+    ctx.drawImage(resisImg, enemigos[i].x, enemigos[i].y, enemigos[i].size, enemigos[i].size);
+
+    if (collides(player, enemigos[i])) {
+      gameOver();
+      return;
+    }
+  }
+
+  if (!isGameOver) requestAnimationFrame(update);
+}
+
+function collides(a, b) {
+  return a.x < b.x + b.size &&
+         a.x + a.size > b.x &&
+         a.y < b.y + b.size &&
+         a.y + a.size > b.y;
+}
+
+function gameOver() {
+  isGameOver = true;
+  document.getElementById("bitCount").textContent = score;
+  document.getElementById("gameOverScreen").style.display = "block";
+
+  if (clienteID && score > 0) {
+    fetch('https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: clienteID,
+        bits: score,
+        score: score
+      })
+    });
+  }
+
+  fetch('https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec')
+    .then(response => response.json())
+    .then(data => {
+      const topList = document.getElementById("topList");
+      topList.innerHTML = "";
+      data.forEach(player => {
+        const item = document.createElement("li");
+        item.textContent = `${player.id}: ${player.record} bits`;
+        topList.appendChild(item);
+      });
+    });
+}
+</script>
+
+</body>
+</html>
