@@ -3,74 +3,188 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mapa Feiqui</title>
+  <title>ECOS DEL CÍRCULO - Capítulo 1</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
+      height: 100dvh;
       background-color: black;
       color: white;
       font-family: monospace;
-      height: 100dvh;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      transition: background-color 0.5s ease;
     }
-    #mapa {
+    #scene {
       flex-grow: 1;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1px;
-      background-color: #333;
-    }
-    .zona {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      background-color: #111;
-      border: 1px solid #444;
       text-align: center;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+      padding: 40px 20px;
+      font-size: 1.1em;
+      line-height: 1.6em;
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
     }
-    .zona:hover {
-      background-color: #222;
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
     }
-    #descripcion {
+    #choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       padding: 20px;
-      background-color: #000;
-      border-top: 1px solid #444;
-      min-height: 100px;
-      font-size: 0.95em;
-      line-height: 1.4em;
+    }
+    .choice {
+      background: none;
+      border: 1px solid white;
+      color: white;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 1em;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="mapa">
-    <div class="zona" onclick="mostrar('centro')">Centro</div>
-    <div class="zona" onclick="mostrar('ciudadvieja')">Ciudad Vieja</div>
-    <div class="zona" onclick="mostrar('aguada')">Aguada</div>
-    <div class="zona" onclick="mostrar('cordon')">Cordón</div>
-    <div class="zona" onclick="mostrar('trescruces')">Tres Cruces</div>
-    <div class="zona" onclick="mostrar('launion')">La Unión</div>
-  </div>
-  <div id="descripcion">Seleccioná una zona para explorar.</div>
+  <div id="scene"></div>
+  <div id="choices"></div>
 
   <script>
-    const zonas = {
-      centro: "Mucho movimiento. Antenas nuevas en todos los techos. Gente que no te mira a los ojos. Hay rumores de una cabina cerrada que aún recibe señales.",
-      ciudadvieja: "Calles viejas con carteles nuevos. Algo se esconde detrás de los portones cerrados. Algunos aseguran haber visto luces que parpadean al ritmo de una voz.",
-      aguada: "Pasajes de tren que ya no funcionan. Bajo los rieles, alguien pintó una marca. Si te parás justo encima, tu BitCard deja de responder.",
-      cordon: "Muchos lo cruzan, pocos lo recuerdan. Hay una puerta sin número entre dos boliches. Si golpeás tres veces, algo cambia en el sonido de la calle.",
-      trescruces: "Demasiada vigilancia. Demasiadas cámaras. Nadie sonríe. Se dice que una terminal vieja todavía accede a los archivos originales del Círculo.",
-      launion: "No parece tener nada especial. Pero cada tanto, alguien encuentra una tarjeta olvidada en el parabrisas de su auto. Todas muestran el mismo símbolo."
-    };
+    const scenes = [
+      {
+        text: "Te levantás con esa sensación rara. Como si ya hubieras vivido este día.",
+        options: [
+          { label: "Revisar el celular", next: 1 },
+          { label: "Ignorar y levantarte", next: 2 }
+        ]
+      },
+      {
+        text: "Una notificación sin icono ni remitente. Solo dice: 'confirmado'. Al tocarla, desaparece.",
+        options: [
+          { label: "Guardar el detalle", next: 3 },
+          { label: "Contárselo a alguien", next: 4 }
+        ]
+      },
+      {
+        text: "Todo se siente automático. Afuera, el día es gris. Subís al ómnibus.",
+        options: [
+          { label: "Observar a los demás pasajeros", next: 5 },
+          { label: "Mirar por la ventana", next: 6 }
+        ]
+      },
+      {
+        text: "La persona a la que se lo contás se queda callada. Cambia de tema. No vuelve a mencionarlo.",
+        options: [
+          { label: "Salir", next: 3 }
+        ]
+      },
+      {
+        text: "Nadie se mueve. Todos parecen congelados. Una voz suena por los parlantes: 'Todo dentro del margen.'",
+        options: [
+          { label: "Escuchar atentamente", next: 7 },
+          { label: "Ponerte los auriculares", next: 8 }
+        ]
+      },
+      {
+        text: "La ciudad se repite en los reflejos. El mismo cartel en cada cuadra. En uno, alguien escribió: 'ya lo hiciste.'",
+        options: [
+          { label: "Acercarte", next: 9 },
+          { label: "Ignorarlo", next: 10 }
+        ]
+      },
+      {
+        text: "La voz cambia. Se convierte en susurro. Dice: 'Tu presencia ya fue registrada.'",
+        options: [
+          { label: "Salir del ómnibus", next: 5 }
+        ]
+      },
+      {
+        text: "El cartel tiene marcas. Rayones. Como si alguien hubiera intentado borrarlo. Pero la frase sigue ahí.",
+        options: [
+          { label: "Tocar el cartel", next: 11 },
+          { label: "Alejarte", next: 10 }
+        ]
+      },
+      {
+        text: "Nada parece fuera de lugar. Pero hay una sensación. Como si alguien te observara desde lejos.",
+        options: [
+          { label: "Seguir caminando", next: 12 }
+        ]
+      },
+      {
+        text: "Un hombre se detiene frente a vos. No dice nada. Te mira. Después se va.",
+        options: [
+          { label: "Seguirlo", next: 13 },
+          { label: "Ignorarlo", next: 12 }
+        ]
+      },
+      {
+        text: "El cartel vibra apenas. Como si acabara de ser colocado. No hay nadie más en la calle.",
+        options: [
+          { label: "Ir al trabajo", next: 14 }
+        ]
+      },
+      {
+        text: "La calle retoma su ritmo. El sonido ambiente te vuelve. Seguís hacia el trabajo.",
+        options: [
+          { label: "Ir al trabajo", next: 14 }
+        ]
+      },
+      {
+        text: "Lo perdés de vista. Pero en el piso, donde estuvo parado, hay un símbolo dibujado con tiza.",
+        options: [
+          { label: "Memorizarlo", next: 14 }
+        ]
+      },
+      {
+        text: "Escaneás tu tarjeta. La máquina no responde. Luego de unos segundos, aparece: acceso normalizado.",
+        options: [
+          { label: "Finalizar", next: null }
+        ]
+      }
+    ];
 
-    function mostrar(zona) {
-      const descripcion = document.getElementById('descripcion');
-      descripcion.textContent = zonas[zona];
+    const sceneDiv = document.getElementById('scene');
+    const choicesDiv = document.getElementById('choices');
+
+    function renderScene(index) {
+      localStorage.setItem('feiqui_scene', index);
+      const scene = scenes[index];
+      sceneDiv.style.opacity = 0;
+      setTimeout(() => {
+        sceneDiv.textContent = scene.text;
+        sceneDiv.style.animation = 'none';
+        void sceneDiv.offsetWidth;
+        sceneDiv.style.animation = null;
+        sceneDiv.style.opacity = 1;
+      }, 100);
+
+      choicesDiv.innerHTML = '';
+      scene.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = option.label;
+        btn.onclick = () => {
+          if (option.next !== null) {
+            renderScene(option.next);
+          } else {
+            sceneDiv.textContent = 'Capítulo 1 finalizado.';
+            choicesDiv.innerHTML = '';
+            localStorage.removeItem('feiqui_scene');
+          }
+        };
+        choicesDiv.appendChild(btn);
+      });
     }
+
+    const savedScene = localStorage.getItem('feiqui_scene');
+    renderScene(savedScene ? parseInt(savedScene) : 0);
   </script>
 </body>
 </html>
