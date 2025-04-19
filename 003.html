@@ -9,9 +9,18 @@
       background-color: black;
       color: white;
       font-family: monospace;
+      margin: 0;
       padding: 20px;
       line-height: 1.6;
       font-size: 1.1em;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #text {
+      flex: 1;
+      overflow-y: auto;
     }
     .fragment {
       opacity: 0;
@@ -22,13 +31,13 @@
       opacity: 1;
     }
     #next {
-      display: block;
-      margin: 40px auto;
-      padding: 10px 20px;
-      font-size: 1em;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
       background: none;
-      border: 1px solid white;
+      border: none;
       color: white;
+      font-size: 2em;
       cursor: pointer;
     }
     #endMessage {
@@ -71,19 +80,23 @@
     <div class="fragment">Pero hay una incomodidad suave. Como cuando te olvidás de algo.</div>
     <div class="fragment">Como cuando sabés que algo cambió, pero no sabés qué.</div>
   </div>
-  <button id="next">Continuar</button>
+  <button id="next">➤</button>
   <div id="endMessage">Capítulo 1 terminado.</div>
 
   <script>
     const fragments = document.querySelectorAll('.fragment');
     const nextBtn = document.getElementById('next');
     const endMessage = document.getElementById('endMessage');
+    const textContainer = document.getElementById('text');
     let index = 0;
 
     function showNext() {
       if (index < fragments.length) {
         fragments[index].classList.add('visible');
         index++;
+        setTimeout(() => {
+          fragments[index - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
       } else {
         nextBtn.style.display = 'none';
         endMessage.style.display = 'block';
