@@ -2,106 +2,138 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Terminal Feiqui</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ECOS DEL CÍRCULO - Decisiones</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100dvh;
       background-color: black;
-      color: #00ff99;
+      color: white;
       font-family: monospace;
-      font-size: 1em;
-      height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
     }
-    #output {
+    #scene {
       flex-grow: 1;
-      overflow-y: auto;
-      padding: 20px;
-      white-space: pre-wrap;
-    }
-    #input-area {
       display: flex;
-      padding: 10px;
-      border-top: 1px solid #00ff99;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 1.1em;
+      line-height: 1.6em;
     }
-    #cmd {
-      flex-grow: 1;
-      background: black;
-      border: none;
-      color: #00ff99;
+    #choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+    }
+    .choice {
+      background: none;
+      border: 1px solid white;
+      color: white;
+      padding: 12px;
       font-family: monospace;
       font-size: 1em;
-      outline: none;
-    }
-    #quick-commands {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 10px 20px;
-      background-color: #111;
-    }
-    .qcmd {
-      background: none;
-      border: 1px solid #00ff99;
-      color: #00ff99;
-      padding: 6px 10px;
       cursor: pointer;
-      font-size: 0.9em;
-      font-family: monospace;
     }
   </style>
 </head>
 <body>
-  <div id="output"></div>
-  <div id="quick-commands">
-    <button class="qcmd" onclick="runCommand('ver estado')">ver estado</button>
-    <button class="qcmd" onclick="runCommand('escanear tarjeta')">escanear tarjeta</button>
-    <button class="qcmd" onclick="runCommand('acceder nodo')">acceder nodo</button>
-    <button class="qcmd" onclick="runCommand('enviar reporte')">enviar reporte</button>
-  </div>
-  <div id="input-area">
-    <span>$</span>&nbsp;
-    <input type="text" id="cmd" placeholder="Escriba un comando..." autofocus />
-  </div>
+  <div id="scene">Te levantás con esa sensación rara. Como si ya hubieras vivido este día.</div>
+  <div id="choices"></div>
 
   <script>
-    const output = document.getElementById('output');
-    const cmdInput = document.getElementById('cmd');
-
-    const responses = {
-      "ver estado": "[DÍA 28 - CÍRCULO NULL]\nBits: 312\nEstado mental: Leve inquietud",
-      "escanear tarjeta": "[LECTURA INDEFINIDA]\n...\n\nresultado: acceso normalizado",
-      "acceder nodo": "[ERROR]\nPermisos insuficientes para ingresar al nodo solicitado.",
-      "enviar reporte": "[REPORTE RECIBIDO]\nLa vigilancia se ha ajustado. Espere nuevas instrucciones."
-    };
-
-    function printOutput(text) {
-      output.innerText += `\n$ ${cmdInput.value}\n${text}\n`;
-      output.scrollTop = output.scrollHeight;
-    }
-
-    function runCommand(command) {
-      cmdInput.value = command;
-      processCommand();
-    }
-
-    function processCommand() {
-      const input = cmdInput.value.trim().toLowerCase();
-      if (input) {
-        const response = responses[input] || "[SISTEMA] Comando no reconocido.";
-        printOutput(response);
-        cmdInput.value = "";
+    const scenes = [
+      {
+        text: "Te levantás con esa sensación rara. Como si ya hubieras vivido este día.",
+        options: [
+          { label: "Revisar el celular", next: 1 },
+          { label: "Ignorar y levantarte", next: 2 }
+        ]
+      },
+      {
+        text: "Una notificación sin icono ni remitente. Solo dice: \"confirmado\". Al tocarla, desaparece.",
+        options: [
+          { label: "Guardar ese detalle en la memoria", next: 3 },
+          { label: "Contárselo a alguien", next: 4 }
+        ]
+      },
+      {
+        text: "Todo se siente automático. Pero algo afuera no encaja. Hay un cartel nuevo en la esquina.",
+        options: [
+          { label: "Acercarte a mirar el cartel", next: 5 },
+          { label: "Seguir caminando", next: 6 }
+        ]
+      },
+      {
+        text: "No sabés por qué, pero te lo anotás mentalmente. Como si fuera importante después.",
+        options: [
+          { label: "Salir a la calle", next: 2 }
+        ]
+      },
+      {
+        text: "La persona a la que se lo contás se queda callada. Cambia de tema rápido. No lo vuelve a mencionar.",
+        options: [
+          { label: "Salir a la calle", next: 2 }
+        ]
+      },
+      {
+        text: "Abajo del cartel alguien escribió: \"ya lo hiciste\". Sentís que te está hablando a vos.",
+        options: [
+          { label: "Tocar el cartel", next: 7 },
+          { label: "Seguir en silencio", next: 6 }
+        ]
+      },
+      {
+        text: "Nada parece diferente. Pero hay una incomodidad leve. Como cuando te olvidás de algo.",
+        options: [
+          { label: "Ir al trabajo", next: 8 }
+        ]
+      },
+      {
+        text: "El cartel está tibio. Como si alguien lo hubiera tocado recién. Pero no hay nadie alrededor.",
+        options: [
+          { label: "Ir al trabajo", next: 8 }
+        ]
+      },
+      {
+        text: "Escaneás tu tarjeta. La máquina no responde. Después de unos segundos, muestra: acceso normalizado.",
+        options: [
+          { label: "Finalizar", next: null }
+        ]
       }
+    ];
+
+    const sceneDiv = document.getElementById('scene');
+    const choicesDiv = document.getElementById('choices');
+
+    function renderScene(index) {
+      const scene = scenes[index];
+      sceneDiv.textContent = scene.text;
+      choicesDiv.innerHTML = '';
+
+      scene.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = option.label;
+        btn.onclick = () => {
+          if (option.next !== null) {
+            renderScene(option.next);
+          } else {
+            sceneDiv.textContent = 'Capítulo 1 finalizado.';
+            choicesDiv.innerHTML = '';
+          }
+        };
+        choicesDiv.appendChild(btn);
+      });
     }
 
-    cmdInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        processCommand();
-      }
-    });
+    renderScene(0);
   </script>
 </body>
 </html>
