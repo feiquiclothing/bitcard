@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recolecta Bits</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      font-family: monospace;
+      touch-action: manipulation;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #f0f0f0;
+      width: 100vw;
+      height: 60vh;
+    }
+    #gameOverScreen {
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+    button {
+      padding: 10px 20px;
+      font-family: monospace;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body onclick="playerJump()">
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="gameOverScreen">
+  <h2>GAME OVER</h2>
+  <p>Bits recolectados: <span id="bitCount">0</span></p>
+  <button onclick="startGame()">Volver a jugar</button>
+</div>
+
+<script>
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight * 0.6;
+
+let player, bits = [], score = 0, gravity = 0.6, lift = -10, velocity = 0;
+let isGameOver = false;
+let frame = 0;
+let clienteID = new URLSearchParams(window.location.search).get('id');
+
+function startGame() {
+  isGameOver = false;
+  score = 0;
+  velocity = 0;
+  bits = [];
+  frame = 0;
+  player = { x: 50, y: canvas.height/2, size: 30 };
+
+  document.getElementById("gameOverScreen").style.display = "none";
+  requestAnimationFrame(update);
+}
+
+function playerJump() {
+  if (!isGameOver) velocity = lift;
+}
+
+function update() {
+  frame++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Físicas del jugador
+  velocity += gravity;
+  player.y += velocity;
+  if (player.y + player.size > canvas.height) {
+    player.y = canvas.height - player.size;
+    gameOver();
+    return;
+  }
+
+  // Dibujar jugador
+  ctx.fillStyle = "black";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+
+  // Crear bits
+  if (frame % 60 === 0) {
+    bits.push({
+      x: canvas.width,
+      y: Math.random() * (canvas.height - 20),
+      size: 15
+    });
+  }
+
+  // Dibujar y mover bits
+  for (let i = 0; i < bits.length; i++) {
+    bits[i].x -= 4;
+    ctx.fillStyle = "blue";
+    ctx.fillRect(bits[i].x, bits[i].y, bits[i].size, bits[i].size);
+
+    if (isColliding(player, bits[i])) {
+      score++;
+      bits.splice(i, 1);
+      i--;
+    } else if (bits[i].x + bits[i].size < 0) {
+      bits.splice(i, 1);
+      i--;
+    }
+  }
+
+  // Puntaje
+  ctx.fillStyle = "black";
+  ctx.font = "20px monospace";
+  ctx.fillText("Bits: " + score, 10, 25);
+
+  if (!isGameOver) requestAnimationFrame(update);
+}
+
+function isColliding(a, b) {
+  return a.x < b.x + b.size &&
+         a.x + a.size > b.x &&
+         a.y < b.y + b.size &&
+         a.y + a.size > b.y;
+}
+
+function gameOver() {
+  isGameOver = true;
+  document.getElementById("bitCount").textContent = score;
+  document.getElementById("gameOverScreen").style.display = "block";
+
+  if (clienteID) {
+    fetch('https://script.google.com/macros/s/AKfycbxxxxxxx/exec', {
+      method: 'POST',
+      mode: 'no-cors', // para que no bloquee desde navegador
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: clienteID, bits: score })
+    }).then(() => {
+      console.log("Bits enviados");
+    });
+  }
+}
+</script>
+
+</body>
+</html>
