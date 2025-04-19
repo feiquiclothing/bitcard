@@ -3,173 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECOS DEL CÍRCULO - Decisiones</title>
+  <title>Mapa Feiqui</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100dvh;
       background-color: black;
       color: white;
       font-family: monospace;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: background-color 0.5s ease;
     }
-    #scene {
+    #mapa {
       flex-grow: 1;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background-color: #333;
+    }
+    .zona {
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 40px 20px;
-      font-size: 1.1em;
-      line-height: 1.6em;
-      opacity: 0;
-      animation: fadeIn 0.6s ease forwards;
-    }
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
-      }
-    }
-    #choices {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
       padding: 20px;
-    }
-    .choice {
-      background: none;
-      border: 1px solid white;
-      color: white;
-      padding: 12px;
-      font-family: monospace;
-      font-size: 1em;
+      background-color: #111;
+      border: 1px solid #444;
+      text-align: center;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
-    #reset {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: none;
-      border: 1px solid white;
-      color: white;
-      padding: 6px 12px;
-      font-family: monospace;
-      font-size: 0.8em;
-      cursor: pointer;
+    .zona:hover {
+      background-color: #222;
+    }
+    #descripcion {
+      padding: 20px;
+      background-color: #000;
+      border-top: 1px solid #444;
+      min-height: 100px;
+      font-size: 0.95em;
+      line-height: 1.4em;
     }
   </style>
 </head>
 <body>
-  <div id="scene"></div>
-  <div id="choices"></div>
-  <button id="reset" onclick="resetProgress()">reiniciar</button>
+  <div id="mapa">
+    <div class="zona" onclick="mostrar('centro')">Centro</div>
+    <div class="zona" onclick="mostrar('ciudadvieja')">Ciudad Vieja</div>
+    <div class="zona" onclick="mostrar('aguada')">Aguada</div>
+    <div class="zona" onclick="mostrar('cordon')">Cordón</div>
+    <div class="zona" onclick="mostrar('trescruces')">Tres Cruces</div>
+    <div class="zona" onclick="mostrar('launion')">La Unión</div>
+  </div>
+  <div id="descripcion">Seleccioná una zona para explorar.</div>
 
   <script>
-    const scenes = [
-      {
-        text: "Te levantás con esa sensación rara. Como si ya hubieras vivido este día.",
-        options: [
-          { label: "Revisar el celular", next: 1 },
-          { label: "Ignorar y levantarte", next: 2 }
-        ]
-      },
-      {
-        text: "Una notificación sin icono ni remitente. Solo dice: \"confirmado\". Al tocarla, desaparece.",
-        options: [
-          { label: "Guardar ese detalle en la memoria", next: 3 },
-          { label: "Contárselo a alguien", next: 4 }
-        ]
-      },
-      {
-        text: "Todo se siente automático. Pero algo afuera no encaja. Hay un cartel nuevo en la esquina.",
-        options: [
-          { label: "Acercarte a mirar el cartel", next: 5 },
-          { label: "Seguir caminando", next: 6 }
-        ]
-      },
-      {
-        text: "No sabés por qué, pero te lo anotás mentalmente. Como si fuera importante después.",
-        options: [
-          { label: "Salir a la calle", next: 2 }
-        ]
-      },
-      {
-        text: "La persona a la que se lo contás se queda callada. Cambia de tema rápido. No lo vuelve a mencionar.",
-        options: [
-          { label: "Salir a la calle", next: 2 }
-        ]
-      },
-      {
-        text: "Abajo del cartel alguien escribió: \"ya lo hiciste\". Sentís que te está hablando a vos.",
-        options: [
-          { label: "Tocar el cartel", next: 7 },
-          { label: "Seguir en silencio", next: 6 }
-        ]
-      },
-      {
-        text: "Nada parece diferente. Pero hay una incomodidad leve. Como cuando te olvidás de algo.",
-        options: [
-          { label: "Ir al trabajo", next: 8 }
-        ]
-      },
-      {
-        text: "El cartel está tibio. Como si alguien lo hubiera tocado recién. Pero no hay nadie alrededor.",
-        options: [
-          { label: "Ir al trabajo", next: 8 }
-        ]
-      },
-      {
-        text: "Escaneás tu tarjeta. La máquina no responde. Después de unos segundos, muestra: acceso normalizado.",
-        options: [
-          { label: "Finalizar", next: null }
-        ]
-      }
-    ];
+    const zonas = {
+      centro: "Mucho movimiento. Antenas nuevas en todos los techos. Gente que no te mira a los ojos. Hay rumores de una cabina cerrada que aún recibe señales.",
+      ciudadvieja: "Calles viejas con carteles nuevos. Algo se esconde detrás de los portones cerrados. Algunos aseguran haber visto luces que parpadean al ritmo de una voz.",
+      aguada: "Pasajes de tren que ya no funcionan. Bajo los rieles, alguien pintó una marca. Si te parás justo encima, tu BitCard deja de responder.",
+      cordon: "Muchos lo cruzan, pocos lo recuerdan. Hay una puerta sin número entre dos boliches. Si golpeás tres veces, algo cambia en el sonido de la calle.",
+      trescruces: "Demasiada vigilancia. Demasiadas cámaras. Nadie sonríe. Se dice que una terminal vieja todavía accede a los archivos originales del Círculo.",
+      launion: "No parece tener nada especial. Pero cada tanto, alguien encuentra una tarjeta olvidada en el parabrisas de su auto. Todas muestran el mismo símbolo."
+    };
 
-    const sceneDiv = document.getElementById('scene');
-    const choicesDiv = document.getElementById('choices');
-
-    function renderScene(index) {
-      localStorage.setItem('feiqui_scene', index);
-      const scene = scenes[index];
-      sceneDiv.style.opacity = 0;
-      setTimeout(() => {
-        sceneDiv.textContent = scene.text;
-        sceneDiv.style.animation = 'none';
-        void sceneDiv.offsetWidth; // trigger reflow
-        sceneDiv.style.animation = null;
-        sceneDiv.style.opacity = 1;
-      }, 100);
-
-      choicesDiv.innerHTML = '';
-      scene.options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.className = 'choice';
-        btn.textContent = option.label;
-        btn.onclick = () => {
-          if (option.next !== null) {
-            renderScene(option.next);
-          } else {
-            sceneDiv.textContent = 'Capítulo 1 finalizado.';
-            choicesDiv.innerHTML = '';
-            localStorage.removeItem('feiqui_scene');
-          }
-        };
-        choicesDiv.appendChild(btn);
-      });
+    function mostrar(zona) {
+      const descripcion = document.getElementById('descripcion');
+      descripcion.textContent = zonas[zona];
     }
-
-    function resetProgress() {
-      localStorage.removeItem('feiqui_scene');
-      renderScene(0);
-    }
-
-    const savedScene = localStorage.getItem('feiqui_scene');
-    renderScene(savedScene ? parseInt(savedScene) : 0);
   </script>
 </body>
 </html>
