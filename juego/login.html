@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - BitCatcher</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      font-family: monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      font-size: 1em;
+      font-family: monospace;
+      margin-bottom: 20px;
+      width: 220px;
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      font-family: monospace;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Ingresá tu ID para comenzar</h2>
+  <input type="text" id="userId" placeholder="Ej: 001" />
+  <button onclick="login()">Entrar</button>
+
+  <script>
+    function login() {
+      const id = document.getElementById("userId").value.trim();
+      if (id) {
+        window.location.href = `BitCatcher.html?id=${encodeURIComponent(id)}`;
+      } else {
+        alert("Por favor ingresá un ID válido.");
+      }
+    }
+  </script>
+
+</body>
+</html>
