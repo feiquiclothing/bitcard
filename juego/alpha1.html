@@ -1,36 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+  <meta charset="UTF-8">
   <title>Recolecta Bits</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #fff;
       font-family: monospace;
-      touch-action: manipulation;
+      background: #fff;
+      overflow: hidden;
     }
     canvas {
       display: block;
-      margin: auto;
       background: #f0f0f0;
-      width: 100vw;
-      height: 60vh;
     }
     #gameOverScreen {
+      position: absolute;
+      top: 30%;
+      width: 100%;
       text-align: center;
-      margin-top: 20px;
       display: none;
+      background: rgba(255, 255, 255, 0.9);
     }
-    button {
+    #gameOverScreen h2 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    #gameOverScreen button {
       padding: 10px 20px;
       font-family: monospace;
-      margin-top: 10px;
+      font-size: 1em;
     }
   </style>
 </head>
-<body onclick="playerJump()">
+<body>
 
 <canvas id="gameCanvas"></canvas>
 
@@ -43,81 +48,83 @@
 <script>
 let canvas = document.getElementById("gameCanvas");
 let ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight * 0.6;
 
-let player, bits = [], score = 0, gravity = 0.6, lift = -10, velocity = 0;
+let w = window.innerWidth;
+let h = window.innerHeight;
+canvas.width = w;
+canvas.height = h;
+
+let clienteID = new URLSearchParams(window.location.search).get('id');
+let player, bits = [], score = 0, gravity = 0.6, lift = -12, velocity = 0;
 let isGameOver = false;
 let frame = 0;
-let clienteID = new URLSearchParams(window.location.search).get('id');
 
 function startGame() {
-  isGameOver = false;
-  score = 0;
+  player = { x: 50, y: h/2, size: 30 };
   velocity = 0;
-  bits = [];
+  score = 0;
   frame = 0;
-  player = { x: 50, y: canvas.height/2, size: 30 };
+  bits = [];
+  isGameOver = false;
 
   document.getElementById("gameOverScreen").style.display = "none";
   requestAnimationFrame(update);
 }
 
-function playerJump() {
-  if (!isGameOver) velocity = lift;
+function jump() {
+  if (!isGameOver) {
+    velocity = lift;
+  }
 }
+
+canvas.addEventListener("touchstart", jump);
+canvas.addEventListener("mousedown", jump);
 
 function update() {
   frame++;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, w, h);
 
-  // Físicas del jugador
+  // físicas
   velocity += gravity;
   player.y += velocity;
-  if (player.y + player.size > canvas.height) {
-    player.y = canvas.height - player.size;
+  if (player.y + player.size > h) {
+    player.y = h - player.size;
     gameOver();
     return;
   }
 
-  // Dibujar jugador
+  // dibujar jugador
   ctx.fillStyle = "black";
   ctx.fillRect(player.x, player.y, player.size, player.size);
 
-  // Crear bits
+  // bits
   if (frame % 60 === 0) {
-    bits.push({
-      x: canvas.width,
-      y: Math.random() * (canvas.height - 20),
-      size: 15
-    });
+    bits.push({ x: w, y: Math.random() * (h - 30), size: 15 });
   }
 
-  // Dibujar y mover bits
   for (let i = 0; i < bits.length; i++) {
-    bits[i].x -= 4;
+    bits[i].x -= 5;
     ctx.fillStyle = "blue";
     ctx.fillRect(bits[i].x, bits[i].y, bits[i].size, bits[i].size);
 
-    if (isColliding(player, bits[i])) {
+    if (collides(player, bits[i])) {
       score++;
-      bits.splice(i, 1);
-      i--;
-    } else if (bits[i].x + bits[i].size < 0) {
       bits.splice(i, 1);
       i--;
     }
   }
 
-  // Puntaje
+  // score
   ctx.fillStyle = "black";
   ctx.font = "20px monospace";
-  ctx.fillText("Bits: " + score, 10, 25);
+  ctx.fillText("Bits: " + score, 10, 30);
 
-  if (!isGameOver) requestAnimationFrame(update);
+  if (!isGameOver) {
+    requestAnimationFrame(update);
+  }
 }
 
-function isColliding(a, b) {
+function collides(a, b) {
   return a.x < b.x + b.size &&
          a.x + a.size > b.x &&
          a.y < b.y + b.size &&
@@ -129,19 +136,17 @@ function gameOver() {
   document.getElementById("bitCount").textContent = score;
   document.getElementById("gameOverScreen").style.display = "block";
 
-  if (clienteID) {
-    fetch('https://script.google.com/macros/s/AKfycbxxxxxxx/exec', {
+  if (clienteID && score > 0) {
+    fetch('https://script.google.com/macros/s/AKfycbXXXXXXX/exec', {
       method: 'POST',
-      mode: 'no-cors', // para que no bloquee desde navegador
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: clienteID, bits: score })
-    }).then(() => {
-      console.log("Bits enviados");
     });
   }
 }
+
+startGame();
 </script>
 
 </body>
