@@ -52,10 +52,6 @@
 <div id="gameOverScreen" style="display:none">
   <h2>GAME OVER</h2>
   <p>Bits recolectados: <span id="bitCount">0</span></p>
-  <div id="topScores" style="margin-top: 20px;">
-    <h3>TOP 3 GLOBAL</h3>
-    <ol id="topList"></ol>
-  </div>
   <button onclick="startGame()">Volver a jugar</button>
 </div>
 
@@ -183,18 +179,6 @@ function gameOver() {
       })
     });
   }
-
-  fetch('https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec')
-    .then(response => response.json())
-    .then(data => {
-      const topList = document.getElementById("topList");
-      topList.innerHTML = "";
-      data.forEach(player => {
-        const item = document.createElement("li");
-        item.textContent = `${player.id}: ${player.record} bits`;
-        topList.appendChild(item);
-      });
-    });
 }
 </script>
 
