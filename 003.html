@@ -1,27 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECOS DEL CÍRCULO</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
       background-color: black;
       color: white;
       font-family: monospace;
-      margin: 0;
-      padding: 20px;
-      line-height: 1.6;
-      font-size: 1.1em;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      font-size: 1.05em;
+      height: 100%;
       overflow: hidden;
     }
+    #container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
     #text {
-      flex: 1;
-      overflow: hidden;
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -43,19 +48,37 @@
       color: white;
       font-size: 2em;
       cursor: pointer;
+      z-index: 10;
+    }
+    #status {
+      padding: 12px 20px 0;
+      font-size: 0.9em;
+      color: #888;
     }
     #endMessage {
       display: none;
       text-align: center;
-      margin-top: 60px;
+      padding: 30px;
       font-style: italic;
     }
   </style>
 </head>
 <body>
-  <div id="text"></div>
-  <button id="next">➤</button>
-  <div id="endMessage">Capítulo 1 terminado.</div>
+  <div id="container">
+    <div id="status">
+      [DÍA 28 - CÍRCULO NULL]<br>
+      Bits: 312  Estado mental: Inestable  Vigilancia: 45%<br><br>
+      Tu rutina:<br>
+      ☐ Ir al centro de trabajo automatizado<br>
+      ☐ Asistir al evento “Entra al Círculo”<br>
+      ☐ Escuchar el mensaje diario de los Profetas<br>
+      ☐ Visitar clandestinamente un nodo de Resistencia<br>
+      ☐ Meditar en soledad
+    </div>
+    <div id="text"></div>
+    <div id="endMessage">Capítulo 1 terminado.</div>
+    <button id="next">➤</button>
+  </div>
 
   <script>
     const fragmentTexts = [
@@ -67,24 +90,20 @@
       "\u201cconfirmado\u201d",
       "Tocás para abrir, pero desaparece. No se va al historial. No deja rastro.",
       "No te asustás. Pero te quedás pensando.",
-      "...",
       "Vas a laburar. El ómnibus llega puntual. La SUBE pasa sin problemas.",
       "Pero el chofer te mira un segundo más de lo normal.",
       "Sentís que te reconoce. Pero no sabés de dónde.",
-      "...",
       "En la calle, todo está igual. Excepto un cartel que no debería estar ahí.",
       "Es de esos de “ENTRA AL CÍRCULO”, pero está despegado.",
       "Abajo, alguien escribió con marcador grueso:",
       "\u201cya lo hiciste.\u201d",
       "No sabés si lo escribieron para vos. Capaz ni es para nadie.",
-      "...",
       "Llegás al trabajo. Tenés que escanear tu tarjeta.",
       "Lo hacés. La máquina pita. Pero no muestra nada.",
       "Te quedás esperando. No sale ni “aceptado” ni “error”.",
       "Después de un rato, aparece una línea chiquita, gris:",
       "\u201cacceso normalizado\u201d",
       "Nunca habías leído eso antes.",
-      "...",
       "Volvés a casa en silencio. El día pasó. No pasó nada.",
       "Pero hay una incomodidad suave. Como cuando te olvidás de algo.",
       "Como cuando sabés que algo cambió, pero no sabés qué."
@@ -97,14 +116,11 @@
 
     function showNext() {
       if (index < fragmentTexts.length) {
-        // Borrar contenido anterior cada 5 fragmentos para mantener pantalla limpia
-        if (index % 5 === 0) {
-          textContainer.innerHTML = '';
-        }
         const newFragment = document.createElement('div');
         newFragment.className = 'fragment visible';
         newFragment.textContent = fragmentTexts[index];
         textContainer.appendChild(newFragment);
+        textContainer.scrollTop = textContainer.scrollHeight;
         index++;
       } else {
         nextBtn.style.display = 'none';
