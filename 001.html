@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BitCard</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/png" href="favicon.png" />
   <style>
     body {
       background-color: white;
@@ -60,15 +60,43 @@
     .visible {
       opacity: 1;
     }
+
+    /* Animaciones por Círculo */
+    @keyframes fadePulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes scalePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { filter: drop-shadow(0 0 5px #e0e0e0); }
+      50% { filter: drop-shadow(0 0 15px #ffffff); }
+    }
+
+    .circulo-null {
+      animation: fadePulse 3s infinite ease-in-out;
+    }
+
+    .circulo-entry {
+      animation: scalePulse 2.5s infinite ease-in-out;
+    }
+
+    .circulo-posthuman {
+      animation: glowPulse 2s infinite ease-in-out;
+    }
   </style>
 </head>
-<body>
 
-  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal">
+<body>
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal" />
   
   <h1 id="nombre">SUJETO:</h1>
   <h1 id="circulo">CÍRCULO:</h1>
-  <img id="circuloImagen" src="" alt="Icono de círculo">
+  <img id="circuloImagen" src="" alt="Icono de círculo" />
 
   <div class="count">Bits: <strong id="Bits">0</strong></div>
   <p id="mensajeBits" class="mensaje">+50 bits</p>
@@ -102,8 +130,25 @@
           document.getElementById("Ranking").textContent = cliente.Ranking;
 
           const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          const imagenElemento = document.getElementById("circuloImagen");
+
           if (imagenCírculo) {
-            document.getElementById("circuloImagen").src = imagenCírculo;
+            imagenElemento.src = imagenCírculo;
+          }
+
+          // Limpiar clases previas y aplicar animación según círculo
+          imagenElemento.classList.remove("circulo-null", "circulo-entry", "circulo-posthuman");
+
+          switch (cliente.Círculo.toUpperCase()) {
+            case "NULL":
+              imagenElemento.classList.add("circulo-null");
+              break;
+            case "ENTRY":
+              imagenElemento.classList.add("circulo-entry");
+              break;
+            case "POSTHUMAN":
+              imagenElemento.classList.add("circulo-posthuman");
+              break;
           }
 
           const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
@@ -149,7 +194,6 @@
                 body: JSON.stringify(bitLogData)
               });
 
-              // Mostrar mensajes
               const mensajeVisita = document.getElementById("mensajeVisita");
               const mensajeBits = document.getElementById("mensajeBits");
               mensajeVisita.classList.add("visible");
