@@ -16,22 +16,26 @@
       display: block;
       background: #f0f0f0;
     }
-    #gameOverScreen {
+    #startScreen, #gameOverScreen {
       position: absolute;
       top: 30%;
       width: 100%;
       text-align: center;
-      display: none;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 10;
     }
-    #gameOverScreen h2 {
-      font-size: 2em;
-      margin-bottom: 0.5em;
-    }
-    #gameOverScreen button {
+    #startScreen button, #gameOverScreen button {
       padding: 10px 20px;
       font-family: monospace;
       font-size: 1em;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      font-size: 20px;
+      color: black;
     }
   </style>
 </head>
@@ -39,21 +43,28 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<div id="gameOverScreen">
+<div id="score">Bits: 0</div>
+
+<div id="startScreen">
+  <h2>RECOLECTA BITS</h2>
+  <button onclick="startGame()">Comenzar</button>
+</div>
+
+<div id="gameOverScreen" style="display:none">
   <h2>GAME OVER</h2>
   <p>Bits recolectados: <span id="bitCount">0</span></p>
   <button onclick="startGame()">Volver a jugar</button>
 </div>
 
 <script>
-// Cargar imágenes
+// IMÁGENES
 const feiquiImg = new Image();
 feiquiImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_38e982b1-0287-42c3-8d9d-6c4d47b4ecee.png?v=1745075124';
 
 const resisImg = new Image();
 resisImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_fd1ae55d-ea78-4dba-b0ac-4e5d7854c954.png?v=1745075124';
 
-// Elementos del juego
+// VARIABLES
 let canvas = document.getElementById("gameCanvas");
 let ctx = canvas.getContext("2d");
 let w = window.innerWidth;
@@ -62,33 +73,33 @@ canvas.width = w;
 canvas.height = h;
 
 let clienteID = new URLSearchParams(window.location.search).get('id');
-let player, bits = [], enemigos = [], score = 0, gravity = 0.6, lift = -12, velocity = 0;
-let isGameOver = false;
-let frame = 0;
+let player, bits = [], enemigos = [], score = 0;
+let gravity = 0.6, lift = -12, velocity = 0;
+let isGameOver = false, frame = 0;
+let bitSpeed = 5, enemySpeed = 4, enemyRate = 180;
 
 function startGame() {
-  player = { x: 50, y: h / 2, size: 40 };
-  velocity = 0;
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("gameOverScreen").style.display = "none";
   score = 0;
   frame = 0;
+  velocity = 0;
   bits = [];
   enemigos = [];
+  bitSpeed = 5;
+  enemySpeed = 4;
+  enemyRate = 180;
   isGameOver = false;
-
-  document.getElementById("gameOverScreen").style.display = "none";
+  player = { x: 50, y: h / 2, size: 40 };
+  document.getElementById("score").textContent = "Bits: 0";
   requestAnimationFrame(update);
 }
 
 function jump() {
-  if (!isGameOver) {
-    velocity = lift;
-  }
+  if (!isGameOver) velocity = lift;
 }
 
-// Evitar doble salto por mouse y touch
-canvas.removeEventListener("touchstart", jump);
-canvas.removeEventListener("mousedown", jump);
-canvas.addEventListener("touchstart", function(e) {
+canvas.addEventListener("touchstart", e => {
   e.preventDefault();
   jump();
 }, { passive: false });
@@ -97,7 +108,7 @@ function update() {
   frame++;
   ctx.clearRect(0, 0, w, h);
 
-  // física del jugador
+  // Física jugador
   velocity += gravity;
   player.y += velocity;
   if (player.y + player.size > h) {
@@ -106,22 +117,29 @@ function update() {
     return;
   }
 
-  // dibujar jugador
+  // Dibujo jugador
   ctx.drawImage(feiquiImg, player.x, player.y, player.size, player.size);
 
-  // generar bits
+  // Dificultad progresiva
+  if (frame % 300 === 0) {
+    bitSpeed += 0.5;
+    enemySpeed += 0.5;
+    if (enemyRate > 90) enemyRate -= 10;
+  }
+
+  // Crear bits
   if (frame % 60 === 0) {
     bits.push({ x: w, y: Math.random() * (h - 30), size: 15 });
   }
 
-  // generar enemigos (resistencia)
-  if (frame % 180 === 0) {
+  // Crear enemigos
+  if (frame % enemyRate === 0) {
     enemigos.push({ x: w, y: Math.random() * (h - 40), size: 40 });
   }
 
-  // actualizar bits
+  // Mover y detectar bits
   for (let i = 0; i < bits.length; i++) {
-    bits[i].x -= 5;
+    bits[i].x -= bitSpeed;
     ctx.fillStyle = "black";
     ctx.fillRect(bits[i].x, bits[i].y, bits[i].size, bits[i].size);
 
@@ -129,12 +147,13 @@ function update() {
       score++;
       bits.splice(i, 1);
       i--;
+      document.getElementById("score").textContent = "Bits: " + score;
     }
   }
 
-  // actualizar enemigos
+  // Mover enemigos
   for (let i = 0; i < enemigos.length; i++) {
-    enemigos[i].x -= 4;
+    enemigos[i].x -= enemySpeed;
     ctx.drawImage(resisImg, enemigos[i].x, enemigos[i].y, enemigos[i].size, enemigos[i].size);
 
     if (collides(player, enemigos[i])) {
@@ -143,14 +162,7 @@ function update() {
     }
   }
 
-  // mostrar score
-  ctx.fillStyle = "black";
-  ctx.font = "20px monospace";
-  ctx.fillText("Bits: " + score, 10, 30);
-
-  if (!isGameOver) {
-    requestAnimationFrame(update);
-  }
+  if (!isGameOver) requestAnimationFrame(update);
 }
 
 function collides(a, b) {
@@ -166,16 +178,18 @@ function gameOver() {
   document.getElementById("gameOverScreen").style.display = "block";
 
   if (clienteID && score > 0) {
-    fetch('https://script.google.com/macros/s/AKfycbXXXXXXX/exec', {
+    fetch('https://script.google.com/macros/s/AKfycbXXXXXXXX/exec', {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: clienteID, bits: score })
+      body: JSON.stringify({
+        id: clienteID,
+        bits: score,
+        score: score
+      })
     });
   }
 }
-
-startGame();
 </script>
 
 </body>
