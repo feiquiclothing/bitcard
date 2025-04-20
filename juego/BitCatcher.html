@@ -190,16 +190,17 @@ function gameOver() {
   mostrarTop3();
 
   if (clienteID && score > 0) {
-    fetch('https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: clienteID,
-        score: score
-      })
-    });
-  }
+  fetch("https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec", {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: clienteID,
+      score: score
+    })
+  });
+}
+
 }
 
 function mostrarTop3() {
