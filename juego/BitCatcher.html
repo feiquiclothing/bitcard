@@ -49,6 +49,55 @@
     #top3 {
       margin-top: 20px;
       font-family: monospace;
+      #gameOverScreen {
+  background: white;
+  color: #B6B6B6;
+  font-family: monospace;
+  text-align: center;
+  padding: 60px 20px;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.gameover-container {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.gameover-container .logo {
+  width: 100px;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+#gameOverScreen h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+#gameOverScreen p {
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+#gameOverScreen button {
+  background: #E6E6E6;
+  border: none;
+  padding: 10px 20px;
+  font-family: monospace;
+  font-size: 14px;
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+.footer-text {
+  font-size: 12px;
+  margin-top: 40px;
+  color: #999;
+}
+
     }
   </style>
 </head>
@@ -64,11 +113,17 @@
 </div>
 
 <div id="gameOverScreen" style="display:none">
-  <h2>GAME OVER</h2>
-  <p>Bits recolectados: <span id="bitCount">0</span></p>
-  <div id="top3"></div>
-  <button onclick="startGame()">Volver a jugar</button>
+  <div class="gameover-container">
+    <img src="Feiqui (80 x 25 cm) (80 x 2 cm) (25 x 35 cm) (300 x 300 px).png" alt="Feiqui Logo" class="logo">
+    <h2>GAME OVER</h2>
+    <p>Logueado como: <span id="userIdDisplay">---</span></p>
+    <p>Bits recolectados: <span id="bitCount">0</span></p>
+    <p>Registro sellado el: <span id="registroFecha">--</span></p>
+    <button onclick="compartirCaptura()">Compartir en historia</button>
+    <p class="footer-text">El Núcleo ha archivado tu sesión.</p>
+  </div>
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
 <script>
@@ -186,8 +241,19 @@ function collides(a, b) {
 function gameOver() {
   isGameOver = true;
   document.getElementById("bitCount").textContent = score;
+  document.getElementById("userIdDisplay").textContent = clienteID || "---";
+  document.getElementById("registroFecha").textContent = new Date().toLocaleString();
   document.getElementById("gameOverScreen").style.display = "block";
-  mostrarTop3();
+  mostrarTop3(); // si querés dejarlo, o comentarlo si no aplica
+
+  // (opcional) registrar en Sheets
+  /*
+  if (clienteID && score > 0) {
+    fetch("...", { ... });
+  }
+  */
+}
+
 
   if (clienteID && score > 0) {
   fetch("https://script.google.com/macros/s/AKfycbw9_6o4MdnJQDdpOqmOyRku8LFKOWHauOjaDFtfYYW3Alx4ZNr2d0LkTTvAejFWjRfUHg/exec", {
