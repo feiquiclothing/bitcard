@@ -114,12 +114,18 @@
   </div>
 </div>
 <script>
+const csvClientesURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMRu0_bhPikeMmx198HXm_w3qAOpHeJyzQO8eiV-lWh_bgAYiyOuAIiX31NJADL9M1GOPQurT2H20c/pub?gid=0&single=true&output=csv";
 const feiquiImg = new Image();
 feiquiImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_38e982b1-0287-42c3-8d9d-6c4d47b4ecee.png?v=1745075124';
 const resisImg = new Image();
 resisImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_fd1ae55d-ea78-4dba-b0ac-4e5d7854c954.png?v=1745075124';
 
-const csvClientesURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMRu0_bhPikeMmx198HXm_w3qAOpHeJyzQO8eiV-lWh_bgAYiyOuAIiX31NJADL9M1GOPQurT2H20c/pub?gid=0&single=true&output=csv";
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+let w = window.innerWidth;
+let h = window.innerHeight;
+canvas.width = w;
+canvas.height = h;
 
 let clienteID = new URLSearchParams(window.location.search).get('id');
 let clienteNombre = "---";
@@ -137,6 +143,9 @@ if (clienteID) {
           break;
         }
       }
+    })
+    .catch(error => {
+      console.error("Error al cargar el CSV:", error);
     });
 }
 
