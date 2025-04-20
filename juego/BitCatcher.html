@@ -104,13 +104,13 @@
 </div>
 <div id="gameOverScreen">
   <div class="gameover-container">
-    <img src="Feiqui (80 x 25 cm) (80 x 2 cm) (25 x 35 cm) (300 x 300 px).png" alt="Feiqui Logo" class="logo">
-    <h2>JUEGO FINALIZADO</h2>
-    <p>Logueado como: <span id="userIdDisplay">---</span></p>
+    <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Feiqui Logo" class="logo">
+    <h2>GAME OVER</h2>
+    <p>ID: <span id="userIdDisplay">---</span></p>
+    <p>Nombre: <span id="userNameDisplay">---</span></p>
     <p>Bits recolectados: <span id="bitCount">0</span></p>
-    <p>Registro sellado el: <span id="registroFecha">--</span></p>
     <button onclick="compartirCaptura()">Compartir en historia</button>
-    <p class="footer-text">El Núcleo ha archivado tu sesión.</p>
+    <p class="footer-text">www.feiqui.com</p>
   </div>
 </div>
 <script>
@@ -119,15 +119,26 @@ feiquiImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_38e982
 const resisImg = new Image();
 resisImg.src = 'https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_fd1ae55d-ea78-4dba-b0ac-4e5d7854c954.png?v=1745075124';
 
-let canvas = document.getElementById("gameCanvas");
-let ctx = canvas.getContext("2d");
-let w = window.innerWidth;
-let h = window.innerHeight;
-canvas.width = w;
-canvas.height = h;
+const csvClientesURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMRu0_bhPikeMmx198HXm_w3qAOpHeJyzQO8eiV-lWh_bgAYiyOuAIiX31NJADL9M1GOPQurT2H20c/pub?gid=0&single=true&output=csv";
 
 let clienteID = new URLSearchParams(window.location.search).get('id');
-if (clienteID) document.getElementById("logged").textContent = "Logueado como: " + clienteID;
+let clienteNombre = "---";
+
+if (clienteID) {
+  document.getElementById("logged").textContent = "Logueado como: " + clienteID;
+  fetch(csvClientesURL)
+    .then(res => res.text())
+    .then(csv => {
+      const data = Papa.parse(csv).data;
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === clienteID) {
+          clienteNombre = data[i][1];
+          document.getElementById("userNameDisplay").textContent = clienteNombre;
+          break;
+        }
+      }
+    });
+}
 
 let player, bits = [], enemigos = [], score = 0;
 let gravity = 0.6, lift = -12, velocity = 0;
@@ -193,7 +204,7 @@ function gameOver() {
   isGameOver = true;
   document.getElementById("bitCount").textContent = score;
   document.getElementById("userIdDisplay").textContent = clienteID || "---";
-  document.getElementById("registroFecha").textContent = new Date().toLocaleString();
+  document.getElementById("userNameDisplay").textContent = clienteNombre || "---";
   document.getElementById("gameOverScreen").style.display = "block";
 }
 
@@ -203,7 +214,7 @@ function compartirCaptura() {
     link.download = "bitcatcher_resultado.png";
     link.href = canvas.toDataURL("image/png");
     link.click();
-    alert("Tu imagen fue descargada.\nCompartila en tu historia y etiquetá a @feiqui__ para avanzar.");
+    alert("Tu imagen fue descargada.\nCompartila en tu historia y etiquetá a @feiqui para participar.");
   });
 }
 </script>
