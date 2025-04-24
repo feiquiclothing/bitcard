@@ -111,6 +111,7 @@
       .then(data => {
         const cliente = data.find(c => c.ID === clienteId);
         if (cliente) {
+          document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
           document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
           document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
           document.getElementById("Ranking").textContent = cliente.Ranking;
