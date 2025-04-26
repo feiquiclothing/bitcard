@@ -19,10 +19,19 @@
       text-align: center;
       transition: background-color 0.5s ease;
     }
+    #container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
     #scene {
       opacity: 0;
       animation: fadeIn 0.8s ease forwards;
-      padding: 20px;
       font-size: 1.2em;
       line-height: 1.6em;
       max-width: 90%;
@@ -64,9 +73,11 @@
   </style>
 </head>
 <body>
-  <div id="scene"></div>
-  <div id="choices"></div>
-  <button id="continueButton" onclick="window.location.href='fragmento1.html'">Continuar</button>
+  <div id="container">
+    <div id="scene"></div>
+    <div id="choices"></div>
+    <button id="continueButton" onclick="window.location.href='fragmento1.html'">Continuar</button>
+  </div>
 
   <script>
     const initialScene = {
@@ -93,41 +104,47 @@
       setTimeout(() => {
         sceneDiv.innerText = text;
         sceneDiv.style.animation = 'none';
-        void sceneDiv.offsetWidth;
+        void sceneDiv.offsetWidth; // reset animation
         sceneDiv.style.animation = null;
         sceneDiv.style.opacity = 1;
-        if (callback) setTimeout(callback, 3000); // Aumenté la espera
-      }, 300);
+        if (callback) setTimeout(callback, 3000);
+      }, 300); // pequeño delay de entrada
     }
 
     function startSequence() {
-      choicesDiv.innerHTML = '';
-      let index = 0;
-      function next() {
-        if (index < sequence.length) {
-          showText(sequence[index], () => {
-            index++;
-            next();
-          });
-        } else {
-          sceneDiv.style.opacity = 0;
-          setTimeout(() => {
-            sceneDiv.innerText = "";
-            continueButton.style.display = 'block';
-            sceneDiv.style.opacity = 1;
-          }, 800);
+      choicesDiv.style.opacity = 0; // oculta opciones
+      setTimeout(() => {
+        choicesDiv.innerHTML = ''; // limpia después de delay
+        let index = 0;
+        function next() {
+          if (index < sequence.length) {
+            showText(sequence[index], () => {
+              index++;
+              next();
+            });
+          } else {
+            sceneDiv.style.opacity = 0;
+            setTimeout(() => {
+              sceneDiv.innerText = "";
+              continueButton.style.display = 'block';
+              sceneDiv.style.opacity = 1;
+            }, 800);
+          }
         }
-      }
-      next();
+        next();
+      }, 500); // pequeño delay antes de arrancar secuencia
     }
 
     function exitSequence() {
-      choicesDiv.innerHTML = '';
-      showText("Podés cerrar esta página.\nPero algo se activó igual.\nTarde o temprano, vas a volver.", () => {
-        setTimeout(() => {
-          window.location.href = 'https://www.google.com';
-        }, 3000);
-      });
+      choicesDiv.style.opacity = 0;
+      setTimeout(() => {
+        choicesDiv.innerHTML = '';
+        showText("Podés cerrar esta página.\nPero algo se activó igual.\nTarde o temprano, vas a volver.", () => {
+          setTimeout(() => {
+            window.location.href = 'https://www.google.com';
+          }, 3000);
+        });
+      }, 500); // delay para salida también
     }
 
     function renderScene(scene) {
