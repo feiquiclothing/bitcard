@@ -20,6 +20,15 @@
       font-size: 1.2em;
       transition: background-color 0.5s ease;
     }
+    #container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+      max-width: 600px;
+    }
     #text {
       opacity: 1;
       transition: opacity 1s ease;
@@ -29,6 +38,8 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-height: 100px; /* reservamos espacio fijo para evitar salto */
+      justify-content: center;
     }
     button {
       background: none;
@@ -43,16 +54,18 @@
 </head>
 <body>
 
-<div id="text">
-  <p>Lo hiciste vos.<br>
-  No sabías qué era,<br>
-  pero igual lo escaneaste.<br>
-  ¿seguís?</p>
-</div>
+<div id="container">
+  <div id="text">
+    <p>Lo hiciste vos.<br>
+    No sabías qué era,<br>
+    pero igual lo escaneaste.<br>
+    ¿seguís?</p>
+  </div>
 
-<div id="choices">
-  <button onclick="aceptar()">Sí</button>
-  <button onclick="rechazar()">No</button>
+  <div id="choices">
+    <button onclick="aceptar()">Sí</button>
+    <button onclick="rechazar()">No</button>
+  </div>
 </div>
 
 <script>
@@ -64,10 +77,14 @@ function fadeOutAndChange(newHTML, nextUrl) {
     textDiv.style.opacity = 1;
   }, 1000);
 
-  document.getElementById('choices').style.display = 'none';
+  // en vez de desaparecer, ocultamos los botones pero reservamos el espacio
+  const choicesDiv = document.getElementById('choices');
+  setTimeout(() => {
+    choicesDiv.innerHTML = '';
+  }, 500); // borra los botones después de medio segundo
   setTimeout(() => {
     window.location.href = nextUrl;
-  }, 4000); // tiempo total: 1s fadeout + 3s lectura
+  }, 4000); // redirige después de 4s
 }
 
 function aceptar() {
@@ -75,7 +92,7 @@ function aceptar() {
     <p>Se activó tu ingreso al primer círculo.<br>
     Ya no podés deshacerlo.<br>
     Y todavía no sabés qué es.</p>
-  `, "capitulo1.html"); // ← Acá ponés la URL real
+  `, "capitulo1.html"); // ← Cambia esta URL por la real
 }
 
 function rechazar() {
