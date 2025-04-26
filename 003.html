@@ -55,13 +55,18 @@
       border: 1px solid white;
       cursor: pointer;
       display: none;
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
     }
   </style>
 </head>
 <body>
   <div id="scene"></div>
   <div id="choices"></div>
-  <button id="continueButton" onclick="window.location.href='capitulo1.html'">Ingresar</button>
+  <button id="continueButton" onclick="window.location.href='fragmento1.html'">Continuar</button>
 
   <script>
     const initialScene = {
@@ -91,7 +96,7 @@
         void sceneDiv.offsetWidth;
         sceneDiv.style.animation = null;
         sceneDiv.style.opacity = 1;
-        if (callback) setTimeout(callback, 2500);
+        if (callback) setTimeout(callback, 3000); // Aumenté la espera
       }, 300);
     }
 
@@ -110,7 +115,7 @@
             sceneDiv.innerText = "";
             continueButton.style.display = 'block';
             sceneDiv.style.opacity = 1;
-          }, 500);
+          }, 800);
         }
       }
       next();
