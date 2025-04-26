@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECOS DEL CÍRCULO - Capítulo 1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECOS DEL CÍRCULO</title>
   <style>
     html, body {
       margin: 0;
@@ -14,37 +14,27 @@
       font-family: monospace;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 1.2em;
       transition: background-color 0.5s ease;
     }
-    #scene {
-      flex-grow: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 40px 20px;
-      font-size: 1.1em;
-      line-height: 1.6em;
-      opacity: 0;
-      animation: fadeIn 0.6s ease forwards;
-    }
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
-      }
+    #text {
+      opacity: 1;
+      transition: opacity 1s ease;
     }
     #choices {
+      margin-top: 30px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 20px;
     }
-    .choice {
+    button {
       background: none;
       border: 1px solid white;
       color: white;
-      padding: 12px;
+      padding: 10px 20px;
       font-family: monospace;
       font-size: 1em;
       cursor: pointer;
@@ -52,139 +42,50 @@
   </style>
 </head>
 <body>
-  <div id="scene"></div>
-  <div id="choices"></div>
 
-  <script>
-    const scenes = [
-      {
-        text: "Te levantás con esa sensación rara. Como si ya hubieras vivido este día.",
-        options: [
-          { label: "Revisar el celular", next: 1 },
-          { label: "Ignorar y levantarte", next: 2 }
-        ]
-      },
-      {
-        text: "Una notificación sin icono ni remitente. Solo dice: 'confirmado'. Al tocarla, desaparece.",
-        options: [
-          { label: "Guardar el detalle", next: 3 },
-          { label: "Contárselo a alguien", next: 4 }
-        ]
-      },
-      {
-        text: "Todo se siente automático. Afuera, el día es gris. Subís al ómnibus.",
-        options: [
-          { label: "Observar a los demás pasajeros", next: 5 },
-          { label: "Mirar por la ventana", next: 6 }
-        ]
-      },
-      {
-        text: "La persona a la que se lo contás se queda callada. Cambia de tema. No vuelve a mencionarlo.",
-        options: [
-          { label: "Salir", next: 3 }
-        ]
-      },
-      {
-        text: "Nadie se mueve. Todos parecen congelados. Una voz suena por los parlantes: 'Todo dentro del margen.'",
-        options: [
-          { label: "Escuchar atentamente", next: 7 },
-          { label: "Ponerte los auriculares", next: 8 }
-        ]
-      },
-      {
-        text: "La ciudad se repite en los reflejos. El mismo cartel en cada cuadra. En uno, alguien escribió: 'ya lo hiciste.'",
-        options: [
-          { label: "Acercarte", next: 9 },
-          { label: "Ignorarlo", next: 10 }
-        ]
-      },
-      {
-        text: "La voz cambia. Se convierte en susurro. Dice: 'Tu presencia ya fue registrada.'",
-        options: [
-          { label: "Salir del ómnibus", next: 5 }
-        ]
-      },
-      {
-        text: "El cartel tiene marcas. Rayones. Como si alguien hubiera intentado borrarlo. Pero la frase sigue ahí.",
-        options: [
-          { label: "Tocar el cartel", next: 11 },
-          { label: "Alejarte", next: 10 }
-        ]
-      },
-      {
-        text: "Nada parece fuera de lugar. Pero hay una sensación. Como si alguien te observara desde lejos.",
-        options: [
-          { label: "Seguir caminando", next: 12 }
-        ]
-      },
-      {
-        text: "Un hombre se detiene frente a vos. No dice nada. Te mira. Después se va.",
-        options: [
-          { label: "Seguirlo", next: 13 },
-          { label: "Ignorarlo", next: 12 }
-        ]
-      },
-      {
-        text: "El cartel vibra apenas. Como si acabara de ser colocado. No hay nadie más en la calle.",
-        options: [
-          { label: "Ir al trabajo", next: 14 }
-        ]
-      },
-      {
-        text: "La calle retoma su ritmo. El sonido ambiente te vuelve. Seguís hacia el trabajo.",
-        options: [
-          { label: "Ir al trabajo", next: 14 }
-        ]
-      },
-      {
-        text: "Lo perdés de vista. Pero en el piso, donde estuvo parado, hay un símbolo dibujado con tiza.",
-        options: [
-          { label: "Memorizarlo", next: 14 }
-        ]
-      },
-      {
-        text: "Escaneás tu tarjeta. La máquina no responde. Luego de unos segundos, aparece: acceso normalizado.",
-        options: [
-          { label: "Finalizar", next: null }
-        ]
-      }
-    ];
+<div id="text">
+  <p>Lo hiciste vos.<br>
+  No sabías qué era,<br>
+  pero igual lo escaneaste.<br>
+  ¿seguís?</p>
+</div>
 
-    const sceneDiv = document.getElementById('scene');
-    const choicesDiv = document.getElementById('choices');
+<div id="choices">
+  <button onclick="aceptar()">Sí</button>
+  <button onclick="rechazar()">No</button>
+</div>
 
-    function renderScene(index) {
-      localStorage.setItem('feiqui_scene', index);
-      const scene = scenes[index];
-      sceneDiv.style.opacity = 0;
-      setTimeout(() => {
-        sceneDiv.textContent = scene.text;
-        sceneDiv.style.animation = 'none';
-        void sceneDiv.offsetWidth;
-        sceneDiv.style.animation = null;
-        sceneDiv.style.opacity = 1;
-      }, 100);
+<script>
+function fadeOutAndChange(newHTML, nextUrl) {
+  const textDiv = document.getElementById('text');
+  textDiv.style.opacity = 0;
+  setTimeout(() => {
+    textDiv.innerHTML = newHTML;
+    textDiv.style.opacity = 1;
+  }, 1000);
 
-      choicesDiv.innerHTML = '';
-      scene.options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.className = 'choice';
-        btn.textContent = option.label;
-        btn.onclick = () => {
-          if (option.next !== null) {
-            renderScene(option.next);
-          } else {
-            sceneDiv.textContent = 'Capítulo 1 finalizado.';
-            choicesDiv.innerHTML = '';
-            localStorage.removeItem('feiqui_scene');
-          }
-        };
-        choicesDiv.appendChild(btn);
-      });
-    }
+  document.getElementById('choices').style.display = 'none';
+  setTimeout(() => {
+    window.location.href = nextUrl;
+  }, 4000); // tiempo total: 1s fadeout + 3s lectura
+}
 
-    const savedScene = localStorage.getItem('feiqui_scene');
-    renderScene(savedScene ? parseInt(savedScene) : 0);
-  </script>
+function aceptar() {
+  fadeOutAndChange(`
+    <p>Se activó tu ingreso al primer círculo.<br>
+    Ya no podés deshacerlo.<br>
+    Y todavía no sabés qué es.</p>
+  `, "capitulo1.html"); // ← Acá ponés la URL real
+}
+
+function rechazar() {
+  fadeOutAndChange(`
+    <p>Podés cerrar esta página.<br>
+    Pero algo se activó igual.<br>
+    Tarde o temprano, vas a volver.</p>
+  `, "https://www.google.com"); // Redirige a Google
+}
+</script>
+
 </body>
 </html>
