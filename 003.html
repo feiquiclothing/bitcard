@@ -13,7 +13,6 @@
       color: white;
       font-family: monospace;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
@@ -24,8 +23,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100dvh;
-      text-align: center;
+      height: 100dvh;
       padding: 20px;
       box-sizing: border-box;
     }
@@ -40,10 +38,11 @@
       to { opacity: 1; }
     }
     #choices {
-      margin-top: 20px;
+      margin-top: 30px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-height: 100px; /* <<< clave: reservamos espacio siempre */
     }
     .choice {
       background: none;
@@ -108,13 +107,13 @@
         sceneDiv.style.animation = null;
         sceneDiv.style.opacity = 1;
         if (callback) setTimeout(callback, 3000);
-      }, 300); // pequeño delay de entrada
+      }, 300);
     }
 
     function startSequence() {
-      choicesDiv.style.opacity = 0; // oculta opciones
+      choicesDiv.style.opacity = 0; // ocultamos opciones pero no las eliminamos
       setTimeout(() => {
-        choicesDiv.innerHTML = ''; // limpia después de delay
+        choicesDiv.innerHTML = ''; // dejamos el div vacío
         let index = 0;
         function next() {
           if (index < sequence.length) {
@@ -132,7 +131,7 @@
           }
         }
         next();
-      }, 500); // pequeño delay antes de arrancar secuencia
+      }, 500);
     }
 
     function exitSequence() {
@@ -144,7 +143,7 @@
             window.location.href = 'https://www.google.com';
           }, 3000);
         });
-      }, 500); // delay para salida también
+      }, 500);
     }
 
     function renderScene(scene) {
