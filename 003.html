@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ECOS DEL CÍRCULO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>?</title>
   <style>
     html, body {
       margin: 0;
@@ -17,92 +17,130 @@
       justify-content: center;
       align-items: center;
       text-align: center;
-      font-size: 1.2em;
       transition: background-color 0.5s ease;
     }
-    #container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      width: 100%;
-      max-width: 600px;
+    #scene {
+      opacity: 0;
+      animation: fadeIn 0.8s ease forwards;
+      padding: 20px;
+      font-size: 1.2em;
+      line-height: 1.6em;
+      max-width: 90%;
     }
-    #text {
-      opacity: 1;
-      transition: opacity 1s ease;
+    @keyframes fadeIn {
+      to { opacity: 1; }
     }
     #choices {
-      margin-top: 30px;
+      margin-top: 20px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-height: 100px; /* reservamos espacio fijo para evitar salto */
-      justify-content: center;
     }
-    button {
+    .choice {
       background: none;
       border: 1px solid white;
       color: white;
-      padding: 10px 20px;
+      padding: 12px;
       font-family: monospace;
       font-size: 1em;
       cursor: pointer;
     }
+    #continueButton {
+      margin-top: 30px;
+      padding: 12px 20px;
+      font-size: 1em;
+      font-family: monospace;
+      color: white;
+      background: none;
+      border: 1px solid white;
+      cursor: pointer;
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <div id="scene"></div>
+  <div id="choices"></div>
+  <button id="continueButton" onclick="window.location.href='capitulo1.html'">Ingresar</button>
 
-<div id="container">
-  <div id="text">
-    <p>Lo hiciste vos.<br>
-    No sabías qué era,<br>
-    pero igual lo escaneaste.<br>
-    ¿seguís?</p>
-  </div>
+  <script>
+    const initialScene = {
+      text: "No sabías qué era,\npero igual lo escaneaste.\n¿seguís?",
+      options: [
+        { label: "Sí", next: "startSequence" },
+        { label: "No", next: "exitSequence" }
+      ]
+    };
 
-  <div id="choices">
-    <button onclick="aceptar()">Sí</button>
-    <button onclick="rechazar()">No</button>
-  </div>
-</div>
+    const sequence = [
+      "Se activó tu ingreso al primer círculo.\nYa no podés deshacerlo.\nY todavía no sabés qué es.",
+      "Tu presencia fue registrada.",
+      "Esperá.",
+      "Vas a recibir la primera instrucción."
+    ];
 
-<script>
-function fadeOutAndChange(newHTML, nextUrl) {
-  const textDiv = document.getElementById('text');
-  textDiv.style.opacity = 0;
-  setTimeout(() => {
-    textDiv.innerHTML = newHTML;
-    textDiv.style.opacity = 1;
-  }, 1000);
+    const sceneDiv = document.getElementById('scene');
+    const choicesDiv = document.getElementById('choices');
+    const continueButton = document.getElementById('continueButton');
 
-  // en vez de desaparecer, ocultamos los botones pero reservamos el espacio
-  const choicesDiv = document.getElementById('choices');
-  setTimeout(() => {
-    choicesDiv.innerHTML = '';
-  }, 500); // borra los botones después de medio segundo
-  setTimeout(() => {
-    window.location.href = nextUrl;
-  }, 4000); // redirige después de 4s
-}
+    function showText(text, callback) {
+      sceneDiv.style.opacity = 0;
+      setTimeout(() => {
+        sceneDiv.innerText = text;
+        sceneDiv.style.animation = 'none';
+        void sceneDiv.offsetWidth;
+        sceneDiv.style.animation = null;
+        sceneDiv.style.opacity = 1;
+        if (callback) setTimeout(callback, 2500);
+      }, 300);
+    }
 
-function aceptar() {
-  fadeOutAndChange(`
-    <p>Se activó tu ingreso al primer círculo.<br>
-    Ya no podés deshacerlo.<br>
-    Y todavía no sabés qué es.</p>
-  `, "capitulo1.html"); // ← Cambia esta URL por la real
-}
+    function startSequence() {
+      choicesDiv.innerHTML = '';
+      let index = 0;
+      function next() {
+        if (index < sequence.length) {
+          showText(sequence[index], () => {
+            index++;
+            next();
+          });
+        } else {
+          sceneDiv.style.opacity = 0;
+          setTimeout(() => {
+            sceneDiv.innerText = "";
+            continueButton.style.display = 'block';
+            sceneDiv.style.opacity = 1;
+          }, 500);
+        }
+      }
+      next();
+    }
 
-function rechazar() {
-  fadeOutAndChange(`
-    <p>Podés cerrar esta página.<br>
-    Pero algo se activó igual.<br>
-    Tarde o temprano, vas a volver.</p>
-  `, "https://www.google.com"); // Redirige a Google
-}
-</script>
+    function exitSequence() {
+      choicesDiv.innerHTML = '';
+      showText("Podés cerrar esta página.\nPero algo se activó igual.\nTarde o temprano, vas a volver.", () => {
+        setTimeout(() => {
+          window.location.href = 'https://www.google.com';
+        }, 3000);
+      });
+    }
 
+    function renderScene(scene) {
+      showText(scene.text);
+      choicesDiv.innerHTML = '';
+      scene.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = option.label;
+        btn.onclick = () => {
+          if (option.next === 'startSequence') startSequence();
+          else if (option.next === 'exitSequence') exitSequence();
+        };
+        choicesDiv.appendChild(btn);
+      });
+    }
+
+    renderScene(initialScene);
+  </script>
 </body>
 </html>
