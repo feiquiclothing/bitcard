@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fragmento 1/8</title>
+  <style>
+    body {
+      background-color: #fff;
+      color: #000;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    img {
+      max-width: 90%;
+      margin: 20px 0;
+      filter: contrast(150%) grayscale(100%);
+    }
+    .warning {
+      font-size: 0.8em;
+      opacity: 0.6;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fragmento 1/8</h1>
+  <p>Ubicación parcial detectada: 34.9056° S, 56.2030° W</p>
+  <img src="glitch1.png" alt="Fragmento visual" />
+  <p class="warning">Transmisión inestable. Proceda con precaución.</p>
+</body>
+</html>
