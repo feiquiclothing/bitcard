@@ -18,6 +18,12 @@
       margin: 0;
       text-align: center;
     }
+    img {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-bottom: 1rem;
+    }
     h1 {
       font-size: 1.5rem;
       margin-bottom: 2rem;
@@ -38,12 +44,28 @@
       margin-top: 2rem;
       opacity: 0.6;
     }
+    #ranking {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: left;
+    }
+    .rank-item {
+      margin-bottom: 0.3rem;
+    }
   </style>
 </head>
 <body>
+  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo Feiqui" />
+
   <h1>ESCANEÁ TU BITCARD</h1>
   <input id="scan" autofocus placeholder="">
   <p>BitCard válida únicamente con lector en terminal autorizada.</p>
+
+  <div id="ranking">
+    <h2>🏆 Top 10 BITS</h2>
+    <div id="ranking-list">Cargando...</div>
+  </div>
 
   <script>
     const input = document.getElementById("scan");
@@ -58,6 +80,23 @@
 
     window.addEventListener("click", () => input.focus());
     window.addEventListener("keydown", () => input.focus());
+
+    fetch("https://docs.google.com/spreadsheets/d/11BZIl65zeCnLIEv42qSYAjUHyyv9SbgVDeXZnu7x3lY/gviz/tq?tqx=out:json&sheet=feiqui_clientes")
+      .then(res => res.text())
+      .then(text => JSON.parse(text.substr(47).slice(0, -2)))
+      .then(json => {
+        const rows = json.table.rows
+          .map(r => r.c.map(c => c ? c.v : ""))
+          .filter(row => row[0] && row[2])
+          .sort((a, b) => b[2] - a[2])
+          .slice(0, 10);
+
+        const list = rows.map((r, i) => `<div class='rank-item'>${i + 1}. ${r[1]} – ${r[2]} bits</div>`).join("");
+        document.getElementById("ranking-list").innerHTML = list;
+      })
+      .catch(() => {
+        document.getElementById("ranking-list").innerText = "No se pudo cargar el ranking.";
+      });
   </script>
 </body>
 </html>
