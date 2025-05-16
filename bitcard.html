@@ -1,4 +1,4 @@
-<!-- bitcard.html -->
+<!-- bitcard.html actualizado -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -83,115 +83,108 @@
     const clienteId = urlParams.get("id");
     const authParam = urlParams.get("auth");
 
-    const imagenesPorCirculo = {
-      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
-      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
-      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
-    };
-
-    fetch(`${apiUrl}?redir=1&id=${clienteId}`)
+    fetch(`${apiUrl}?id=${clienteId}`)
       .then(res => res.json())
       .then(data => {
-        if (data.redirigir) {
+        if (data.redireccion) {
           window.location.href = data.url;
+          return;
+        }
+
+        const cliente = data;
+        if (cliente.error || !cliente.ID) {
+          document.getElementById("nombre").textContent = "NO ENCONTRADO";
+          return;
+        }
+
+        document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
+        document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+        document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+        document.getElementById("Ranking").textContent = cliente.Ranking;
+
+        const imagenesPorCirculo = {
+          "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+          "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
+          "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+        };
+
+        const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+        const imagenElemento = document.getElementById("circuloImagen");
+
+        if (imagenCírculo) {
+          imagenElemento.src = imagenCírculo;
+        }
+
+        imagenElemento.classList.remove("circulo-posthuman");
+        if (cliente.Círculo.toUpperCase() === "POSTHUMAN") {
+          imagenElemento.classList.add("circulo-posthuman");
+        }
+
+        const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+        const ahora = new Date();
+        const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
+
+        if (puedeAcreditar && authParam === secret) {
+          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+          const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+
+          document.getElementById("Bits").textContent = nuevosBits;
+          document.getElementById("Visitas").textContent = nuevasVisitas;
+
+          const updatedData = {
+            ID: cliente.ID,
+            Nombre: cliente.Nombre,
+            Bits: nuevosBits,
+            Ranking: cliente.Ranking,
+            Círculo: cliente.Círculo,
+            Visitas: nuevasVisitas
+          };
+
+          fetch(apiUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedData)
+          });
+
+          const bitLogData = {
+            ID: cliente.ID,
+            Nombre: cliente.Nombre,
+            Incremento: 50
+          };
+
+          fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bitLogData)
+          });
+
+          document.getElementById("mensajeVisita").classList.add("visible");
+          document.getElementById("mensajeBits").classList.add("visible");
+
+          setTimeout(() => {
+            document.getElementById("mensajeVisita").classList.remove("visible");
+            document.getElementById("mensajeBits").classList.remove("visible");
+          }, 3000);
+
+          localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
         } else {
-          iniciarBitcard();
+          document.getElementById("Bits").textContent = cliente.Bits;
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+        }
+
+        if (authParam !== "111") {
+          document.getElementById("linkFeiqui").style.display = "inline-block";
+        }
+
+        if (authParam === "111") {
+          setTimeout(() => {
+            window.location.href = "scan.html";
+          }, 15000);
         }
       })
-      .catch(() => iniciarBitcard());
-
-    function iniciarBitcard() {
-      fetch(`${apiUrl}?id=${clienteId}`)
-        .then(response => response.json())
-        .then(cliente => {
-          if (cliente.error) {
-            document.getElementById("nombre").textContent = "NO ENCONTRADO";
-            return;
-          }
-
-          document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
-          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
-          document.getElementById("Ranking").textContent = cliente.Ranking;
-
-          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
-          const imagenElemento = document.getElementById("circuloImagen");
-
-          if (imagenCírculo) {
-            imagenElemento.src = imagenCírculo;
-          }
-
-          imagenElemento.classList.remove("circulo-posthuman");
-          if (cliente.Círculo.toUpperCase() === "POSTHUMAN") {
-            imagenElemento.classList.add("circulo-posthuman");
-          }
-
-          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
-          const ahora = new Date();
-          const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
-
-          if (puedeAcreditar && authParam === secret) {
-            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-            const nuevosBits = parseInt(cliente.Bits || 0) + 50;
-
-            document.getElementById("Bits").textContent = nuevosBits;
-            document.getElementById("Visitas").textContent = nuevasVisitas;
-
-            const updatedData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Bits: nuevosBits,
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo,
-              Visitas: nuevasVisitas
-            };
-
-            fetch(apiUrl, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updatedData)
-            });
-
-            const bitLogData = {
-              ID: cliente.ID,
-              Nombre: cliente.Nombre,
-              Incremento: 50
-            };
-
-            fetch(apiUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(bitLogData)
-            });
-
-            document.getElementById("mensajeVisita").classList.add("visible");
-            document.getElementById("mensajeBits").classList.add("visible");
-
-            setTimeout(() => {
-              document.getElementById("mensajeVisita").classList.remove("visible");
-              document.getElementById("mensajeBits").classList.remove("visible");
-            }, 3000);
-
-            localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
-          } else {
-            document.getElementById("Bits").textContent = cliente.Bits;
-            document.getElementById("Visitas").textContent = cliente.Visitas;
-          }
-
-          if (authParam !== "111") {
-            document.getElementById("linkFeiqui").style.display = "inline-block";
-          }
-        })
-        .catch(error => {
-          console.error("Error al cargar datos del cliente:", error);
-        });
-    }
-
-    if (authParam === "111") {
-      setTimeout(() => {
-        window.location.href = "scan.html";
-      }, 15000);
-    }
+      .catch(error => {
+        console.error("Error al cargar datos del cliente:", error);
+      });
   </script>
 </body>
 </html>
