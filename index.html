@@ -12,8 +12,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       padding: 2rem;
       margin: 0;
+      height: 100vh;
       text-align: center;
     }
     h1, h2 {
@@ -34,7 +36,7 @@
     }
     #ranking {
       margin-top: 2rem;
-      text-align: left;
+      text-align: center;
       width: 100%;
       max-width: 400px;
     }
@@ -44,6 +46,8 @@
     a {
       color: #B6B6B6;
       text-decoration: none;
+      margin-top: 1rem;
+      display: inline-block;
     }
   </style>
 </head>
@@ -79,8 +83,8 @@
       .then(json => {
         const rows = json.table.rows
           .map(r => r.c.map(c => c ? c.v : ""))
-          .filter(row => row[0] && row[2]) // ID y Bits
-          .sort((a, b) => b[2] - a[2]) // Ordenar por Bits
+          .filter(row => row[0] && row[2])
+          .sort((a, b) => b[2] - a[2])
           .slice(0, 10);
 
         const list = rows.map((r, i) => `<div class='rank-item'>${i + 1}. ${r[1]} – ${r[2]} bits</div>`).join("");
