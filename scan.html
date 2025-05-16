@@ -1,10 +1,9 @@
-<!-- scan.html: Terminal BitCard Reader -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BitCard Scan – Feiqui</title>
+  <title>BitCard Scanner</title>
   <style>
     body {
       background-color: white;
@@ -37,6 +36,12 @@
       margin-top: 2rem;
       width: 100%;
       max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #ranking-list {
+      width: 100%;
       text-align: left;
     }
     .rank-item {
@@ -48,7 +53,7 @@
   <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo Feiqui" />
 
   <h1>ESCANEÁ TU BITCARD</h1>
-  <p>BitCard válida únicamente con lector en terminal autorizada.</p>
+
 
   <div id="ranking">
     <h2>Top 10 BITS</h2>
@@ -59,11 +64,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     const authParam = urlParams.get("auth");
 
-    // Si se accedió con auth=111, volver automáticamente al scan.html después de 15 segundos
+   
     if (authParam === "111") {
       setTimeout(() => {
         window.location.href = "scan.html";
-      }, 15000);
+      }, 10000);
     }
 
     fetch("https://docs.google.com/spreadsheets/d/11BZIl65zeCnLIEv42qSYAjUHyyv9SbgVDeXZnu7x3lY/gviz/tq?tqx=out:json&sheet=feiqui_clientes")
