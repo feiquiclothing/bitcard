@@ -60,13 +60,13 @@
   <h1 id="clienteId">ID:</h1>
   <h1 id="nombre">SUJETO:</h1>
   <h1 id="circulo">CÍRCULO:</h1>
-  <img id="circuloImagen" src="" alt="Icono de círculo" />
+  <img id="circuloImagen" src="" alt="" />
   <div class="count">Bits: <strong id="Bits">0</strong></div>
   <p id="mensajeBits" class="mensaje">+50 bits</p>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
-  <div class="quote">Tu presencia quedó registrada por el sistema.</div>
+  <div class="quote"></div>
   <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
   <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
 
@@ -177,6 +177,16 @@
           console.error("Error al cargar datos del cliente:", error);
         });
     }
+    const urlParams = new URLSearchParams(window.location.search);
+const authParam = urlParams.get("auth");
+
+// Solo redirige si viene desde la terminal autorizada
+if (authParam === "111") {
+  setTimeout(() => {
+    window.location.href = "scan.html";
+  }, 15000); // redirige después de 15 segundos
+}
+
 
   </script>
 </body>
