@@ -1,0 +1,82 @@
+<!-- index.html: Centro de Control BitCard -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feiqui BitCard Terminal</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #00ff88;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 2rem; margin-bottom: 1.5rem; }
+    button, input {
+      background: black;
+      color: #00ff88;
+      border: 1px solid #00ff88;
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      margin: 0.5rem;
+    }
+    input {
+      width: 100px;
+      text-align: center;
+    }
+    #ranking {
+      margin-top: 2rem;
+      text-align: left;
+    }
+    .rank-item { margin-bottom: 0.3rem; }
+  </style>
+</head>
+<body>
+  <h1>🟢 BitCard Terminal – Feiqui</h1>
+
+  <button onclick="location.href='scan.html'">Escanear BitCard (Terminal)</button>
+
+  <div>
+    <p>🔍 Ingresar ID manual:</p>
+    <input id="manual-id" placeholder="001">
+    <button onclick="abrirBitCard()">Abrir BitCard</button>
+  </div>
+
+  <div id="ranking">
+    <h2>🏆 Top 10 BITS</h2>
+    <div id="ranking-list">Cargando...</div>
+  </div>
+
+  <script>
+    function abrirBitCard() {
+      const id = document.getElementById("manual-id").value.trim().padStart(3, '0');
+      if (id) {
+        window.open(`bitcard.html?id=${id}&auth=111`, '_blank');
+      }
+    }
+
+    const apiUrl = "https://script.google.com/macros/s/AKfycbxKmcrPA5IaJuFAR8xXAqiPmwLSLDBKWOtz5rF3nPc7lo6VQeUKMnMw_S3LjXVJlDWqlw/exec";
+
+    fetch("https://docs.google.com/spreadsheets/d/11BZIl65zeCnLIEv42qSYAjUHyyv9SbgVDeXZnu7x3lY/gviz/tq?tqx=out:json&sheet=feiqui_clientes")
+      .then(res => res.text())
+      .then(text => JSON.parse(text.substr(47).slice(0,-2)))
+      .then(json => {
+        const rows = json.table.rows
+          .map(r => r.c.map(c => c ? c.v : ""))
+          .filter(row => row[0] && row[2]) // ID y Bits
+          .sort((a, b) => b[2] - a[2]) // Ordenar por Bits
+          .slice(0, 10);
+
+        const list = rows.map((r, i) => `<div class='rank-item'>${i+1}. ${r[1]} – ${r[2]} bits</div>`).join("");
+        document.getElementById("ranking-list").innerHTML = list;
+      })
+      .catch(() => {
+        document.getElementById("ranking-list").innerText = "No se pudo cargar el ranking.";
+      });
+  </script>
+</body>
+</html>
