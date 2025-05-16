@@ -7,19 +7,23 @@
   <title>Feiqui BitCard Terminal</title>
   <style>
     body {
-      background-color: #111;
-      color: #00ff88;
+      background-color: white;
+      color: #B6B6B6;
       font-family: monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 2rem;
+      margin: 0;
     }
-    h1 { font-size: 2rem; margin-bottom: 1.5rem; }
+    h1, h2 {
+      margin-bottom: 1rem;
+    }
     button, input {
-      background: black;
-      color: #00ff88;
-      border: 1px solid #00ff88;
+      background: white;
+      color: #B6B6B6;
+      border: 1px solid #B6B6B6;
+      font-family: monospace;
       font-size: 1rem;
       padding: 0.5rem 1rem;
       margin: 0.5rem;
@@ -31,12 +35,18 @@
     #ranking {
       margin-top: 2rem;
       text-align: left;
+      width: 100%;
+      max-width: 400px;
     }
     .rank-item { margin-bottom: 0.3rem; }
+    a {
+      color: #B6B6B6;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
-  <h1>🟢 BitCard Terminal – Feiqui</h1>
+  <h1>BitCard Terminal – Feiqui</h1>
 
   <button onclick="location.href='scan.html'">Escanear BitCard (Terminal)</button>
 
@@ -50,6 +60,8 @@
     <h2>🏆 Top 10 BITS</h2>
     <div id="ranking-list">Cargando...</div>
   </div>
+
+  <a href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
   <script>
     function abrirBitCard() {
