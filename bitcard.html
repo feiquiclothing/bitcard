@@ -33,6 +33,12 @@
       margin-bottom: 45px;
     }
     h1 { margin: 0; }
+    #clienteId, #nombre, #circulo {
+      margin-bottom: 10px;
+    }
+    #nombre {
+      margin-top: 30px;
+    }
     #circuloImagen {
       width: auto;
       height: auto;
@@ -53,6 +59,7 @@
       50% { filter: drop-shadow(0 0 25px #ffffff); }
     }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
+    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -67,8 +74,7 @@
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
   <div class="quote"></div>
-  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
-  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
   <script>
     const apiUrl = "https://script.google.com/macros/s/AKfycbyXaN_4qhgk5-8W5QuN5_o18o98d163mJ2s3UrQbC4gJOs211ot9tse-2dene20t4BvRA/exec";
@@ -83,7 +89,6 @@
       "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
     };
 
-    // Redirección controlada desde la hoja bitcard_redirects
     fetch(`${apiUrl}?redir=1&id=${clienteId}`)
       .then(res => res.json())
       .then(data => {
@@ -172,22 +177,21 @@
             document.getElementById("Bits").textContent = cliente.Bits;
             document.getElementById("Visitas").textContent = cliente.Visitas;
           }
+
+          if (authParam !== "111") {
+            document.getElementById("linkFeiqui").style.display = "inline-block";
+          }
         })
         .catch(error => {
           console.error("Error al cargar datos del cliente:", error);
         });
     }
-    const urlParams = new URLSearchParams(window.location.search);
-const authParam = urlParams.get("auth");
 
-// Solo redirige si viene desde la terminal autorizada
-if (authParam === "111") {
-  setTimeout(() => {
-    window.location.href = "scan.html";
-  }, 15000); // redirige después de 15 segundos
-}
-
-
+    if (authParam === "111") {
+      setTimeout(() => {
+        window.location.href = "scan.html";
+      }, 15000);
+    }
   </script>
 </body>
 </html>
