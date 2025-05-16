@@ -1,0 +1,56 @@
+<!-- scan.html: Terminal BitCard Reader -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terminal BitCard Feiqui</title>
+  <style>
+    body {
+      background: black;
+      color: #00ff00;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 1em;
+    }
+    input {
+      background: black;
+      color: #00ff00;
+      border: none;
+      border-bottom: 2px solid #00ff00;
+      font-size: 2em;
+      text-align: center;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESCANEAR BITCARD</h1>
+  <input id="scan" autofocus placeholder="Esperando...">
+
+  <script>
+    const input = document.getElementById("scan");
+
+    input.addEventListener("input", (e) => {
+      const id = e.target.value.trim();
+      if (id.length >= 3) {
+        // Asegurar formato 3 dígitos
+        const formatted = id.padStart(3, "0");
+        window.location.href = `bitcard.html?id=${formatted}&auth=111`;
+      }
+    });
+
+    // Volver a enfocar input en caso de perder foco (lector NFC)
+    window.addEventListener("click", () => input.focus());
+    window.addEventListener("keydown", () => input.focus());
+  </script>
+</body>
+</html>
