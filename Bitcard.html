@@ -1,0 +1,182 @@
+<!-- bitcard.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BitCard</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <style>
+    body {
+      background-color: white;
+      color: #B6B6B6;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    img {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -20px;
+    }
+    .count { font-size: 2em; margin: 5px 0; }
+    .quote {
+      opacity: 0.6;
+      font-style: italic;
+      margin-top: 30px;
+      margin-bottom: 45px;
+    }
+    h1 { margin: 0; }
+    #circuloImagen {
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      margin-top: 1px;
+    }
+    .mensaje {
+      color: #B6B6B6;
+      font-size: 14px;
+      opacity: 0;
+      margin-top: 0px;
+      margin-bottom: 8px;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .visible { opacity: 1; }
+    @keyframes glowPulse {
+      0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
+      50% { filter: drop-shadow(0 0 25px #ffffff); }
+    }
+    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
+  </style>
+</head>
+<body>
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo principal" />
+  <h1 id="clienteId">ID:</h1>
+  <h1 id="nombre">SUJETO:</h1>
+  <h1 id="circulo">CÍRCULO:</h1>
+  <img id="circuloImagen" src="" alt="Icono de círculo" />
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <p id="mensajeBits" class="mensaje">+50 bits</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <div class="quote">Tu presencia quedó registrada por el sistema.</div>
+  <a style="color: #b6b6b6; font-size: 16px; text-decoration: none;">ir a </a> 
+  <a href="https://feiqui.com/pages/info" style="color: #b6b6b6; font-size: 16px; text-decoration: none;">feiqui.com</a>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbxKmcrPA5IaJuFAR8xXAqiPmwLSLDBKWOtz5rF3nPc7lo6VQeUKMnMw_S3LjXVJlDWqlw/exec";
+    const secret = "111";
+    const urlParams = new URLSearchParams(window.location.search);
+    const clienteId = urlParams.get("id");
+    const authParam = urlParams.get("auth");
+
+    const imagenesPorCirculo = {
+      "NULL": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/1_e59d1fc3-073a-4ca6-b501-f66c3c3ce439.png?v=1744482250",
+      "ENTRY": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/2_d950d01d-6333-4395-adbb-83c712be7ef6.png?v=1744482250",
+      "POSTHUMAN": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/3_02239a12-e4b0-477b-9f78-0d057f3841d9.png?v=1744482250"
+    };
+
+    // Redirección controlada desde la hoja bitcard_redirects
+    fetch(`${apiUrl}?redir=1&id=${clienteId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.redirigir) {
+          window.location.href = data.url;
+        } else {
+          iniciarBitcard();
+        }
+      })
+      .catch(() => iniciarBitcard());
+
+    function iniciarBitcard() {
+      fetch(`${apiUrl}?id=${clienteId}`)
+        .then(response => response.json())
+        .then(cliente => {
+          if (cliente.error) {
+            document.getElementById("nombre").textContent = "NO ENCONTRADO";
+            return;
+          }
+
+          document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
+          document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("circulo").textContent = `CÍRCULO: ${cliente.Círculo}`;
+          document.getElementById("Ranking").textContent = cliente.Ranking;
+
+          const imagenCírculo = imagenesPorCirculo[cliente.Círculo.toUpperCase()];
+          const imagenElemento = document.getElementById("circuloImagen");
+
+          if (imagenCírculo) {
+            imagenElemento.src = imagenCírculo;
+          }
+
+          imagenElemento.classList.remove("circulo-posthuman");
+          if (cliente.Círculo.toUpperCase() === "POSTHUMAN") {
+            imagenElemento.classList.add("circulo-posthuman");
+          }
+
+          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+          const ahora = new Date();
+          const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
+
+          if (puedeAcreditar && authParam === secret) {
+            const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
+            const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+
+            document.getElementById("Bits").textContent = nuevosBits;
+            document.getElementById("Visitas").textContent = nuevasVisitas;
+
+            const updatedData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Bits: nuevosBits,
+              Ranking: cliente.Ranking,
+              Círculo: cliente.Círculo,
+              Visitas: nuevasVisitas
+            };
+
+            fetch(apiUrl, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatedData)
+            });
+
+            const bitLogData = {
+              ID: cliente.ID,
+              Nombre: cliente.Nombre,
+              Incremento: 50
+            };
+
+            fetch(apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(bitLogData)
+            });
+
+            document.getElementById("mensajeVisita").classList.add("visible");
+            document.getElementById("mensajeBits").classList.add("visible");
+
+            setTimeout(() => {
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
+
+            localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+          } else {
+            document.getElementById("Bits").textContent = cliente.Bits;
+            document.getElementById("Visitas").textContent = cliente.Visitas;
+          }
+        })
+        .catch(error => {
+          console.error("Error al cargar datos del cliente:", error);
+        });
+    }
+  </script>
+</body>
+</html>
