@@ -22,8 +22,7 @@
       width: 80%;
       max-width: 400px;
       height: auto;
-      margin-top: 10px;
-      margin-bottom: -20px;
+      margin-top: -20px;
     }
     .count { font-size: 2em; margin: 5px 0; }
     .quote {
@@ -84,7 +83,6 @@
     const clienteId = urlParams.get("id");
     const authParam = urlParams.get("auth");
 
-    // Log de debugging
     console.log("ID recibido:", clienteId);
 
     fetch(`${apiUrl}?id=${encodeURIComponent(clienteId)}`)
@@ -107,7 +105,6 @@
         document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
         document.getElementById("Ranking").textContent = cliente.Ranking;
 
-        // Mapeo de variaciones a clave numérica
         const varianteCirculo = {
           "CÍRCULO 1": "1", "PRIMER CÍRCULO": "1", "1": "1",
           "CÍRCULO 2": "2", "SEGUNDO CÍRCULO": "2", "2": "2",
@@ -123,7 +120,6 @@
         const rawKey = (cliente.Círculo || "").toString().toUpperCase().trim();
         const key = varianteCirculo[rawKey] || "1";
 
-        // Render del nombre y icono
         document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
         const imgEl = document.getElementById("circuloImagen");
         imgEl.src = imagenesPorCirculo[key] || "";
@@ -140,7 +136,6 @@
           document.getElementById("Bits").textContent = nuevosBits;
           document.getElementById("Visitas").textContent = nuevasVisitas;
 
-          // Update: POST con action 'update'
           fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -158,7 +153,6 @@
           .then(json => console.log("respuesta update:", json))
           .catch(err => console.error("error update:", err));
 
-          // Log: POST con action 'log'
           fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -186,8 +180,12 @@
           document.getElementById("Visitas").textContent = cliente.Visitas;
         }
 
-        if (authParam !== secret) document.getElementById("linkFeiqui").style.display = "inline-block";
-        if (authParam === secret) setTimeout(() => window.location.href = "scan.html", 15000);
+        if (authParam !== secret) {
+          document.getElementById("linkFeiqui").style.display = "inline-block";
+        }
+        if (authParam === secret) {
+          setTimeout(() => window.location.href = "scan.html", 15000);
+        }
       })
       .catch(error => console.error("Error al cargar datos del cliente:", error));
   </script>
