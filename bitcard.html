@@ -18,13 +18,39 @@
       margin: 0;
       text-align: center;
     }
-    img {
+    /* Logo principal: ancho fluido pero limitado */
+    #logo {
       width: 80%;
       max-width: 400px;
       height: auto;
       margin-top: -20px;
     }
+    /* Reset para otras imágenes */
+    img {
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
     .count { font-size: 2em; margin: 5px 0; }
+    .quote {
+      opacity: 0.6;
+      font-style: italic;
+      margin-top: 30px;
+      margin-bottom: 45px;
+    }
+    h1 { margin: 0; }
+    #info-principal {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    #circuloImagen {
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      max-width: 200px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
     .mensaje {
       color: #B6B6B6;
       font-size: 14px;
@@ -49,7 +75,7 @@
     <h1 id="nombre">SUJETO:</h1>
     <h1 id="circulo">CÍRCULO:</h1>
   </div>
-  <img id="circuloImagen" src="" alt="" />
+  <img id="circuloImagen" src="" alt="Icono de círculo" />
   <div class="count">Bits: <strong id="Bits">0</strong></div>
   <p id="mensajeBits" class="mensaje">+50 bits</p>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
@@ -66,27 +92,23 @@
 
     console.log("ID recibido:", clienteId);
 
-    // 1) Lectura del cliente
     fetch(`${apiUrl}?id=${encodeURIComponent(clienteId)}`)
       .then(res => res.json())
       .then(data => {
         console.log("RAW API:", data);
-        if (data.redireccion) {
-          return window.location.href = data.url;
-        }
+        if (data.redireccion) return window.location.href = data.url;
 
         const cliente = Array.isArray(data) ? data[0] : data;
         console.log("Cliente parseado:", cliente);
         if (cliente.error || !cliente.ID) {
-          return document.getElementById("nombre").textContent = "NO ENCONTRADO";
+          document.getElementById("nombre").textContent = "NO ENCONTRADO";
+          return;
         }
 
-        // Pinta datos básicos
         document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
         document.getElementById("nombre").textContent    = `SUJETO: ${cliente.Nombre}`;
         document.getElementById("Ranking").textContent   = cliente.Ranking;
 
-        // Mapeo de variaciones de Círculo
         const varianteCirculo = {
           "CÍRCULO 1": "1", "PRIMER CÍRCULO": "1", "1": "1",
           "CÍRCULO 2": "2", "SEGUNDO CÍRCULO": "2", "2": "2",
@@ -102,13 +124,11 @@
         const rawKey = (cliente.Círculo || "").toString().toUpperCase().trim();
         const key    = varianteCirculo[rawKey] || "1";
 
-        // Pinta Círculo y su icono
         document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
         const imgEl = document.getElementById("circuloImagen");
         imgEl.src   = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
-        // Control de acreditación cada 2h
         const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
         const ahora      = new Date();
         const canUpdate  = !lastUpdate || (ahora - new Date(lastUpdate)) > 2*60*60*1000;
@@ -120,53 +140,31 @@
           document.getElementById("Visitas").textContent = nuevasVisitas;
           document.getElementById("Bits").textContent    = nuevosBits;
 
-          // 2) Update GET
-          const updParams = new URLSearchParams({
-            action:  "update",
-            ID:      cliente.ID,
-            Nombre:  cliente.Nombre,
-            Bits:    nuevosBits,
-            Visitas: nuevasVisitas,
-            Ranking: cliente.Ranking,
-            Círculo: cliente.Círculo
-          });
+          const updParams = new URLSearchParams({ action:"update", ID:cliente.ID, Nombre:cliente.Nombre, Bits:nuevosBits, Visitas:nuevasVisitas, Ranking:cliente.Ranking, Círculo:cliente.Círculo });
           fetch(`${apiUrl}?${updParams}`)
-            .then(r => r.json())
-            .then(json => console.log("respuesta update:", json))
-            .catch(err => console.error("error update:", err));
+            .then(r=>r.json()).then(json=>console.log("respuesta update:",json))
+            .catch(err=>console.error("error update:",err));
 
-          // 3) Log GET
-          const logParams = new URLSearchParams({
-            action:     "log",
-            ID:         cliente.ID,
-            Nombre:     cliente.Nombre,
-            Incremento: 50
-          });
+          const logParams = new URLSearchParams({ action:"log", ID:cliente.ID, Nombre:cliente.Nombre, Incremento:50 });
           fetch(`${apiUrl}?${logParams}`)
-            .then(r => r.json())
-            .then(json => console.log("respuesta log:", json))
-            .catch(err => console.error("error log:", err));
+            .then(r=>r.json()).then(json=>console.log("respuesta log:",json))
+            .catch(err=>console.error("error log:", err));
 
-          // Animación y guardado de timestamp
           document.getElementById("mensajeVisita").classList.add("visible");
-          document.getElementById("mensajeBits"  ).classList.add("visible");
+          document.getElementById("mensajeBits").classList.add("visible");
           setTimeout(() => {
             document.getElementById("mensajeVisita").classList.remove("visible");
-            document.getElementById("mensajeBits"  ).classList.remove("visible");
+            document.getElementById("mensajeBits").classList.remove("visible");
           }, 3000);
 
           localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
         } else {
           document.getElementById("Visitas").textContent = cliente.Visitas;
-          document.getElementById("Bits"   ).textContent = cliente.Bits;
+          document.getElementById("Bits").textContent    = cliente.Bits;
         }
 
-        if (authParam !== secret) {
-          document.getElementById("linkFeiqui").style.display = "inline-block";
-        }
-        if (authParam === secret) {
-          setTimeout(() => window.location.href = "scan.html", 15000);
-        }
+        if (authParam !== secret) document.getElementById("linkFeiqui").style.display = "inline-block";
+        if (authParam === secret) setTimeout(() => window.location.href = "scan.html", 15000);
       })
       .catch(err => console.error("Error al cargar datos del cliente:", err));
   </script>
