@@ -136,58 +136,36 @@
           document.getElementById("Bits").textContent = nuevosBits;
           document.getElementById("Visitas").textContent = nuevasVisitas;
 
-          fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action:  "update",
-              ID:      cliente.ID,
-              Nombre:  cliente.Nombre,
-              Bits:    nuevosBits,
-              Visitas: nuevasVisitas,
-              Ranking: cliente.Ranking,
-              Círculo: cliente.Círculo
-            })
-          })
-          .then(r => r.json())
-          .then(json => console.log("respuesta update:", json))
-          .catch(err => console.error("error update:", err));
+          // Dentro de tu bloque if(puedeAcreditar && authParam===secret):
 
-          fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action:     "log",
-              ID:         cliente.ID,
-              Nombre:     cliente.Nombre,
-              Incremento: 50
-            })
-          })
-          .then(r => r.json())
-          .then(json => console.log("respuesta log:", json))
-          .catch(err => console.error("error log:", err));
+// 1) Prepara params de update
+const updParams = new URLSearchParams({
+  action:  "update",
+  ID:      cliente.ID,
+  Nombre:  cliente.Nombre,
+  Bits:    nuevosBits,
+  Visitas: nuevasVisitas,
+  Ranking: cliente.Ranking,
+  Círculo: cliente.Círculo
+});
+// Dispara la llamada
+fetch(`${apiUrl}?${updParams}`)
+  .then(res => res.json())
+  .then(json => console.log("respuesta update:", json))
+  .catch(err => console.error("error update:", err));
 
-          document.getElementById("mensajeVisita").classList.add("visible");
-          document.getElementById("mensajeBits").classList.add("visible");
-          setTimeout(() => {
-            document.getElementById("mensajeVisita").classList.remove("visible");
-            document.getElementById("mensajeBits").classList.remove("visible");
-          }, 3000);
+// 2) Prepara params de log
+const logParams = new URLSearchParams({
+  action:     "log",
+  ID:         cliente.ID,
+  Nombre:     cliente.Nombre,
+  Incremento: 50
+});
+fetch(`${apiUrl}?${logParams}`)
+  .then(res => res.json())
+  .then(json => console.log("respuesta log:", json))
+  .catch(err => console.error("error log:", err));
 
-          localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
-        } else {
-          document.getElementById("Bits").textContent     = cliente.Bits;
-          document.getElementById("Visitas").textContent = cliente.Visitas;
-        }
-
-        if (authParam !== secret) {
-          document.getElementById("linkFeiqui").style.display = "inline-block";
-        }
-        if (authParam === secret) {
-          setTimeout(() => window.location.href = "scan.html", 15000);
-        }
-      })
-      .catch(error => console.error("Error al cargar datos del cliente:", error));
   </script>
 </body>
 </html>
