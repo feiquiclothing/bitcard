@@ -25,43 +25,25 @@
       margin-top: -20px;
     }
     .count { font-size: 2em; margin: 5px 0; }
-    .quote {
-      opacity: 0.6;
-      font-style: italic;
-      margin-top: 30px;
-      margin-bottom: 45px;
-    }
-    h1 { margin: 0; }
-    #info-principal {
-      margin-top: 10px;
-      margin-bottom: 20px;
-    }
-    #circuloImagen {
-      width: auto;
-      height: auto;
-      max-height: 200px;
-      margin-top: 10px;
-      margin-bottom: 20px;
-    }
     .mensaje {
       color: #B6B6B6;
       font-size: 14px;
       opacity: 0;
-      margin-top: 0px;
-      margin-bottom: 8px;
       transition: opacity 0.5s ease-in-out;
     }
     .visible { opacity: 1; }
     @keyframes glowPulse {
       0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
-      50% { filter: drop-shadow(0 0 25px #ffffff); }
+      50%      { filter: drop-shadow(0 0 25px #ffffff); }
     }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
   </style>
 </head>
 <body>
-  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png" alt="Logo principal" />
+  <img id="logo"
+       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437"
+       alt="Logo principal" />
   <div id="info-principal">
     <h1 id="clienteId">ID:</h1>
     <h1 id="nombre">SUJETO:</h1>
@@ -73,38 +55,38 @@
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
-  <div class="quote"></div>
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
   <script>
-    const apiUrl = "https://script.google.com/macros/s/AKfycbxlRKeQryeYaDzVa9a7JZYPSFjia_tuJ8QG4h7uR2HaFaGpKOQ2pU881gSB6YrG7DgwqA/exec";
-    const secret = "111";
-    const urlParams = new URLSearchParams(window.location.search);
-    const clienteId = urlParams.get("id");
-    const authParam = urlParams.get("auth");
+    const apiUrl    = "https://script.google.com/macros/s/AKfycbxlRKeQryeYaDzVa9a7JZYPSFjia_tuJ8QG4h7uR2HaFaGpKOQ2pU881gSB6YrG7DgwqA/exec";
+    const secret    = "111";
+    const params    = new URLSearchParams(window.location.search);
+    const clienteId = params.get("id");
+    const authParam = params.get("auth");
 
     console.log("ID recibido:", clienteId);
 
+    // 1) Lectura del cliente
     fetch(`${apiUrl}?id=${encodeURIComponent(clienteId)}`)
       .then(res => res.json())
       .then(data => {
         console.log("RAW API:", data);
         if (data.redireccion) {
-          window.location.href = data.url;
-          return;
+          return window.location.href = data.url;
         }
 
         const cliente = Array.isArray(data) ? data[0] : data;
         console.log("Cliente parseado:", cliente);
         if (cliente.error || !cliente.ID) {
-          document.getElementById("nombre").textContent = "NO ENCONTRADO";
-          return;
+          return document.getElementById("nombre").textContent = "NO ENCONTRADO";
         }
 
+        // Pinta datos básicos
         document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
-        document.getElementById("nombre").textContent = `SUJETO: ${cliente.Nombre}`;
-        document.getElementById("Ranking").textContent = cliente.Ranking;
+        document.getElementById("nombre").textContent    = `SUJETO: ${cliente.Nombre}`;
+        document.getElementById("Ranking").textContent   = cliente.Ranking;
 
+        // Mapeo de variaciones de Círculo
         const varianteCirculo = {
           "CÍRCULO 1": "1", "PRIMER CÍRCULO": "1", "1": "1",
           "CÍRCULO 2": "2", "SEGUNDO CÍRCULO": "2", "2": "2",
@@ -118,54 +100,75 @@
         };
 
         const rawKey = (cliente.Círculo || "").toString().toUpperCase().trim();
-        const key = varianteCirculo[rawKey] || "1";
+        const key    = varianteCirculo[rawKey] || "1";
 
+        // Pinta Círculo y su icono
         document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
         const imgEl = document.getElementById("circuloImagen");
-        imgEl.src = imagenesPorCirculo[key] || "";
+        imgEl.src   = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
+        // Control de acreditación cada 2h
         const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
-        const ahora = new Date();
-        const puedeAcreditar = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
+        const ahora      = new Date();
+        const canUpdate  = !lastUpdate || (ahora - new Date(lastUpdate)) > 2*60*60*1000;
 
-        if (puedeAcreditar && authParam === secret) {
-          const nuevasVisitas = parseInt(cliente.Visitas || 0) + 1;
-          const nuevosBits = parseInt(cliente.Bits || 0) + 50;
+        if (canUpdate && authParam === secret) {
+          const nuevasVisitas = (parseInt(cliente.Visitas, 10) || 0) + 1;
+          const nuevosBits    = (parseInt(cliente.Bits, 10)   || 0) + 50;
 
-          document.getElementById("Bits").textContent = nuevosBits;
           document.getElementById("Visitas").textContent = nuevasVisitas;
+          document.getElementById("Bits").textContent    = nuevosBits;
 
-          // Dentro de tu bloque if(puedeAcreditar && authParam===secret):
+          // 2) Update GET
+          const updParams = new URLSearchParams({
+            action:  "update",
+            ID:      cliente.ID,
+            Nombre:  cliente.Nombre,
+            Bits:    nuevosBits,
+            Visitas: nuevasVisitas,
+            Ranking: cliente.Ranking,
+            Círculo: cliente.Círculo
+          });
+          fetch(`${apiUrl}?${updParams}`)
+            .then(r => r.json())
+            .then(json => console.log("respuesta update:", json))
+            .catch(err => console.error("error update:", err));
 
-// 1) Prepara params de update
-const updParams = new URLSearchParams({
-  action:  "update",
-  ID:      cliente.ID,
-  Nombre:  cliente.Nombre,
-  Bits:    nuevosBits,
-  Visitas: nuevasVisitas,
-  Ranking: cliente.Ranking,
-  Círculo: cliente.Círculo
-});
-// Dispara la llamada
-fetch(`${apiUrl}?${updParams}`)
-  .then(res => res.json())
-  .then(json => console.log("respuesta update:", json))
-  .catch(err => console.error("error update:", err));
+          // 3) Log GET
+          const logParams = new URLSearchParams({
+            action:     "log",
+            ID:         cliente.ID,
+            Nombre:     cliente.Nombre,
+            Incremento: 50
+          });
+          fetch(`${apiUrl}?${logParams}`)
+            .then(r => r.json())
+            .then(json => console.log("respuesta log:", json))
+            .catch(err => console.error("error log:", err));
 
-// 2) Prepara params de log
-const logParams = new URLSearchParams({
-  action:     "log",
-  ID:         cliente.ID,
-  Nombre:     cliente.Nombre,
-  Incremento: 50
-});
-fetch(`${apiUrl}?${logParams}`)
-  .then(res => res.json())
-  .then(json => console.log("respuesta log:", json))
-  .catch(err => console.error("error log:", err));
+          // Animación y guardado de timestamp
+          document.getElementById("mensajeVisita").classList.add("visible");
+          document.getElementById("mensajeBits"  ).classList.add("visible");
+          setTimeout(() => {
+            document.getElementById("mensajeVisita").classList.remove("visible");
+            document.getElementById("mensajeBits"  ).classList.remove("visible");
+          }, 3000);
 
+          localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+        } else {
+          document.getElementById("Visitas").textContent = cliente.Visitas;
+          document.getElementById("Bits"   ).textContent = cliente.Bits;
+        }
+
+        if (authParam !== secret) {
+          document.getElementById("linkFeiqui").style.display = "inline-block";
+        }
+        if (authParam === secret) {
+          setTimeout(() => window.location.href = "scan.html", 15000);
+        }
+      })
+      .catch(err => console.error("Error al cargar datos del cliente:", err));
   </script>
 </body>
 </html>
