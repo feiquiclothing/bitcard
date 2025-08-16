@@ -7,28 +7,22 @@
   <link rel="icon" type="image/png" href="favicon.png" />
   <style>
     body {
-      background: #fff;
+      background-color: white;
       color: #B6B6B6;
       font-family: monospace;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100vh; margin: 0; text-align: center;
     }
     #logo { width: 80%; max-width: 400px; height: auto; margin-top: -20px; }
-    img { margin: 0; padding: 0; border: 0; }
+    img { margin: 0; padding: 0; border: none; }
     h1 { margin: 0; }
     #info-principal { margin-top: 10px; margin-bottom: 20px; }
     #circuloImagen { width: auto; height: auto; max-height: 200px; max-width: 200px; margin: 10px 0 20px; }
     .count { font-size: 2em; margin: 5px 0; }
     .mensaje { color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity .5s; }
     .visible { opacity: 1; }
-
-    /* Animación que ya usabas para Círculo 3 */
-    @keyframes glowPulse {
-      0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
-      50%      { filter: drop-shadow(0 0 25px #ffffff); }
-    }
+    @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
-
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
   </style>
 </head>
@@ -57,11 +51,10 @@
 
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
-  <script>
-  (async () => {
-    /* === CONFIG (una sola vez) === */
-    const apiUrl = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
-    const secret = "111";
+  <!-- Carga el JS externo (versión para saltar caché al probar) -->
+  <script src="bitcard.js?v=9" defer></script>
+</body>
+</html>
 
     /* === UTILS === */
     const qs = new URLSearchParams(location.search);
