@@ -4,36 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BitCard</title>
-  <link rel="icon" href="favicon.png" />
   <style>
-    body {
-      background: #fff; color: #B6B6B6; font-family: monospace;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 100vh; margin: 0; text-align: center;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    #logo { width: 80%; max-width: 400px; margin-top: -20px; }
-    #circuloImagen { max-height: 200px; max-width: 200px; margin: 10px 0 20px; }
-    .count { font-size: 2em; margin: 5px 0; }
-    .mensaje { font-size: 14px; opacity: 0; transition: opacity .5s; }
-    .visible { opacity: 1; }
-    @keyframes glow { 0%,100%{ filter: drop-shadow(0 0 15px #e0e0e0); } 50%{ filter: drop-shadow(0 0 25px #ffffff); } }
-    .circulo-posthuman { animation: glow 2.3s infinite ease-in-out; }
-    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
-    #version { position: fixed; bottom: 8px; right: 10px; font-size: 11px; opacity: .6; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      width: 100%;
+      border: 1px solid #333;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .field {
+      margin: 6px 0;
+      font-size: 16px;
+    }
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051" alt="Logo Feiqui" />
-  <h1 id="clienteId">ID:</h1>
-  <h1 id="nombre">SUJETO:</h1>
-  <h1 id="circulo">CÍRCULO:</h1>
-  <img id="circuloImagen" src="" alt="" />
-  <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <div class="count" id="filaHistoricos" style="display:none;">Históricos: <strong id="BitsHistoricos">0</strong></div>
-  <p id="mensajeBits" class="mensaje">+50 bits</p>
-  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
-  <p id="mensajeVisita" class="mensaje">+1 visita</p>
-  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <div class="container" id="card">
+    <h1>BitCard</h1>
+    <div id="output" class="field">Cargando...</div>
+  </div>
+
+  <script>
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbxRQK6943Uo3qZFuQzLdVtVpKyPBAxRkOk9G-GUKnyiXuvh_fIm8wUtu9ETp0XHWnBR-A/exec';
+
+    // Obtener ID desde la URL (?id=001)
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id") || "000";
+
+    fetch(`${apiUrl}?id=${id}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          document.getElementById('output').innerHTML = `<div class="error">${data.error}</div>`;
+          return;
+        }
+
+        const html = `
+          <div class="field"><strong>ID:</strong> ${data.ID}</div>
+          <div class="field"><strong>Nombre:</strong> ${data.Nombre}</div>
+          <div class="field"><strong>Bits:</strong> ${data.bits_disponibles}</div>
+          <div class="field"><strong>Visitas:</strong> ${data.Visitas}</div>
+          <div class="field"><strong>Círculo:</strong> ${data.Círculo}</div>
+          <div class="field"><strong>Ranking:</strong> ${data.Ranking}</div>
+        `;
+        document.getElementById('output').innerHTML = html;
+      })
+      .catch(error => {
+        document.getElementById('output').innerHTML = `<div class="error">Error de conexión</div>`;
+        console.error(error);
+      });
+  </script>
+</body>
+</html>
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
   <div id="version">BitCard v16</div>
 
