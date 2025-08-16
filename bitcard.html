@@ -10,25 +10,34 @@
       background-color: white;
       color: #B6B6B6;
       font-family: monospace;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100vh; margin: 0; text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
     }
-    #logo { width: 80%; max-width: 400px; height: auto; margin-top: -20px; }
+    #logo {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -20px;
+    }
     img { margin: 0; padding: 0; border: none; }
+    .count { font-size: 2em; margin: 5px 0; }
+    .quote { opacity: 0.6; font-style: italic; margin-top: 30px; margin-bottom: 45px; }
     h1 { margin: 0; }
     #info-principal { margin-top: 10px; margin-bottom: 20px; }
-    #circuloImagen { max-height: 200px; max-width: 200px; margin-top: 10px; margin-bottom: 20px; }
+    #circuloImagen {
+      width: auto; height: auto; max-height: 200px; max-width: 200px;
+      margin-top: 10px; margin-bottom: 20px;
+    }
     .mensaje { color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity 0.5s ease-in-out; }
     .visible { opacity: 1; }
-    @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0);} 50%{filter:drop-shadow(0 0 25px #ffffff);} }
+    @keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); } 50% { filter: drop-shadow(0 0 25px #ffffff); } }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
-
-    /* Bloques de métricas */
-    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; margin-bottom:10px; width:min(560px, 90vw); }
-    .card { border:1px solid #e5e5e5; padding:12px; border-radius:10px; }
-    .k { font-size:.8rem; opacity:.7; letter-spacing:.02em; }
-    .v { font-size:2rem; line-height:1.2; color:#111; }
   </style>
 </head>
 <body>
@@ -41,27 +50,123 @@
     <h1 id="nombre">SUJETO:</h1>
     <h1 id="circulo">CÍRCULO:</h1>
   </div>
+
   <img id="circuloImagen" src="" alt="" />
 
-  <!-- NUEVO: tarjetas de históricos y disponibles -->
-  <section class="metrics">
-    <article class="card">
-      <div class="k">BITS (HISTÓRICOS)</div>
-      <div class="v" id="BitsHistoricos">0</div>
-    </article>
-    <article class="card">
-      <div class="k">BITS (DISPONIBLES)</div>
-      <div class="v" id="BitsDisponibles">0</div>
-    </article>
-  </section>
+  <!-- Bits disponibles (tu línea original) -->
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <!-- NUEVO: Bits históricos, manteniendo el estilo -->
+  <div class="count">Históricos: <strong id="BitsHistoricos">0</strong></div>
 
-  <!-- Mensajes de feedback que ya usabas -->
   <p id="mensajeBits" class="mensaje">+50 bits</p>
-  <div class="card" style="border:none">
-    <div class="k">VISITAS</div>
-    <div class="v" id="Visitas">0</div>
-  </div>
+
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
+
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+
+  <script>
+    const apiUrl    = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+    const secret    = "111";
+    const params    = new URLSearchParams(window.location.search);
+    const clienteId = params.get("id");
+    const authParam = params.get("auth");
+
+    const fmt = (n) => Number(n || 0).toLocaleString('es-UY');
+
+    fetch(`${apiUrl}?id=${encodeURIComponent(clienteId)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.redireccion) return window.location.href = data.url;
+
+        const cliente = Array.isArray(data) ? data[0] : data;
+        if (cliente.error || !cliente.ID) {
+          document.getElementById("nombre").textContent = "NO ENCONTRADO";
+          return;
+        }
+
+        // Identidad
+        document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
+        document.getElementById("nombre").textContent    = `SUJETO: ${cliente.Nombre}`;
+        document.getElementById("Ranking").textContent   = cliente.Ranking;
+
+        // Círculo + imagen
+        const varianteCirculo = {
+          "CÍRCULO 1": "1", "PRIMER CÍRCULO": "1", "1": "1",
+          "CÍRCULO 2": "2", "SEGUNDO CÍRCULO": "2", "2": "2",
+          "CÍRCULO 3": "3", "TERCER CÍRCULO": "3", "3": "3"
+        };
+        const nombresCirculo = { "1": "CÍRCULO 1", "2": "CÍRCULO 2", "3": "CÍRCULO 3" };
+        const imagenesPorCirculo = {
+          "1": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+          "2": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+          "3": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844"
+        };
+        const key = varianteCirculo[(cliente.Círculo || "").toString().toUpperCase().trim()] || "1";
+        document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
+        const imgEl = document.getElementById("circuloImagen");
+        imgEl.src = imagenesPorCirculo[key] || "";
+        imgEl.classList.toggle("circulo-posthuman", key === "3");
+
+        // ===== NUEVO: tomar históricos y disponibles del endpoint (con fallback a tu columna Bits) =====
+        let bitsDisponibles = (cliente.bits_disponibles ?? Number(cliente.Bits) ?? 0);
+        let bitsHistoricos  = (cliente.bits_totales_historicos ?? cliente.bits_totales ?? Number(cliente.Bits) ?? 0);
+
+        // Pintar valores iniciales
+        document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+        document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+
+        // Control de acreditación por auth
+        const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+        const ahora      = new Date();
+        const canUpdate  = !lastUpdate || (ahora - new Date(lastUpdate)) > 2 * 60 * 60 * 1000;
+
+        if (canUpdate && authParam === secret) {
+          const nuevasVisitas = (parseInt(cliente.Visitas, 10) || 0) + 1;
+          bitsDisponibles += 50; // saldo sube
+          bitsHistoricos  += 50; // histórico sube también (porque lo logueás como earn)
+
+          // reflejar en UI
+          document.getElementById("Visitas").textContent       = fmt(nuevasVisitas);
+          document.getElementById("Bits").textContent          = fmt(bitsDisponibles);
+          document.getElementById("BitsHistoricos").textContent= fmt(bitsHistoricos);
+
+          // actualizar en hoja (tu endpoint)
+          const updParams = new URLSearchParams({
+            action:"update",
+            ID:cliente.ID, Nombre:cliente.Nombre,
+            Bits:bitsDisponibles,
+            Visitas:nuevasVisitas,
+            Ranking:cliente.Ranking, Círculo:cliente.Círculo
+          });
+          fetch(`${apiUrl}?${updParams}`).catch(()=>{});
+
+          // log earn +50 (tu endpoint)
+          const logParams = new URLSearchParams({ action:"log", ID:cliente.ID, Nombre:cliente.Nombre, Incremento:50 });
+          fetch(`${apiUrl}?${logParams}`).catch(()=>{});
+
+          // feedback
+          document.getElementById("mensajeVisita").classList.add("visible");
+          document.getElementById("mensajeBits").classList.add("visible");
+          setTimeout(() => {
+            document.getElementById("mensajeVisita").classList.remove("visible");
+            document.getElementById("mensajeBits").classList.remove("visible");
+          }, 3000);
+
+          localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+        } else {
+          // sin acreditación: ya están mostrados los del server
+          document.getElementById("Visitas").textContent = fmt(cliente.Visitas);
+        }
+
+        if (authParam !== secret) document.getElementById("linkFeiqui").style.display = "inline-block";
+        if (authParam === secret) setTimeout(() => window.location.href = "scan.html", 15000);
+      })
+      .catch(err => console.error("Error al cargar datos del cliente:", err));
+  </script>
+</body>
+</html>
 
   <div class="card" style="border:none">
     <div class="k">RANKING</div>
