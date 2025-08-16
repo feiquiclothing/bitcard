@@ -7,43 +7,25 @@
   <link rel="icon" type="image/png" href="favicon.png" />
   <style>
     body {
-      background-color: white;
-      color: #B6B6B6;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      text-align: center;
+      background:#fff; color:#B6B6B6; font-family:monospace;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      height:100vh; margin:0; text-align:center;
     }
-    #logo {
-      width: 80%;
-      max-width: 400px;
-      height: auto;
-      margin-top: -20px;
+    #logo{ width:80%; max-width:400px; height:auto; margin-top:-20px; }
+    img{ margin:0; padding:0; border:0; }
+    h1{ margin:0; }
+    #info-principal{ margin-top:10px; margin-bottom:20px; }
+    #circuloImagen{ width:auto; height:auto; max-height:200px; max-width:200px; margin:10px 0 20px; }
+    .count{ font-size:2em; margin:5px 0; }
+    .mensaje{ font-size:14px; opacity:0; transition:opacity .5s; }
+    .visible{ opacity:1; }
+    @keyframes glowPulse{
+      0%,100%{ filter:drop-shadow(0 0 15px #e0e0e0) }
+      50%    { filter:drop-shadow(0 0 25px #ffffff) }
     }
-    img { margin: 0; padding: 0; border: none; }
-    .count { font-size: 2em; margin: 5px 0; }
-    h1 { margin: 0; }
-    #info-principal { margin-top: 10px; margin-bottom: 20px; }
-    #circuloImagen {
-      width: auto; height: auto; max-height: 200px; max-width: 200px;
-      margin-top: 10px; margin-bottom: 20px;
-    }
-    .mensaje {
-      color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity 0.5s ease-in-out;
-    }
-    .visible { opacity: 1; }
-
-    @keyframes glowPulse {
-      0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
-      50%      { filter: drop-shadow(0 0 25px #ffffff); }
-    }
-    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
-
-    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
+    .circulo-posthuman{ animation:glowPulse 2.3s infinite ease-in-out; }
+    #linkFeiqui{ display:none; margin-top:10px; font-size:16px; color:#b6b6b6; text-decoration:none; }
+    #version{ position:fixed; bottom:8px; right:10px; font-size:11px; opacity:.6; }
   </style>
 </head>
 <body>
@@ -59,9 +41,151 @@
 
   <img id="circuloImagen" src="" alt="" />
 
-  <!-- Bits disponibles (tu línea original) -->
   <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <!-- Históricos (se mostrará si el endpoint lo manda) -->
+  <div class="count" id="filaHistoricos" style="display:none;">Históricos: <strong id="BitsHistoricos">0</strong></div>
+
+  <p id="mensajeBits"   class="mensaje">+50 bits</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+  <div id="version">BitCard v14</div>
+
+  <script>
+    (function(){
+      'use strict';
+      // Evita doble ejecución si por accidente el archivo se incluye dos veces
+      if (window.__BITCARD_RAN__) return; window.__BITCARD_RAN__ = true;
+
+      // === Config (scope local, NO global)
+      const API_URL = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+      const SECRET  = "111";
+
+      // === Utils
+      const qs    = new URLSearchParams(location.search);
+      const rawId = qs.get("id");
+      const auth  = qs.get("auth");
+      const id    = rawId ? rawId.toString().padStart(3,'0') : '';
+
+      const fmt = (n)=> {
+        const x = Number(n);
+        return Number.isFinite(x) ? x.toLocaleString('es-UY') : '0';
+      };
+      const num = (v, d=0)=> {
+        const x = Number(v);
+        return Number.isFinite(x) ? x : d;
+      };
+
+      if (!id) { document.getElementById('nombre').textContent = 'Falta ?id'; return; }
+      document.getElementById('clienteId').textContent = `ID: ${id}`;
+
+      // === Fetch con cache-buster
+      fetch(`${API_URL}?id=${encodeURIComponent(id)}&_=${Date.now()}`, { cache:'no-store' })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.redireccion && data?.url) { location.href = data.url; return; }
+
+          const c = Array.isArray(data) ? data[0] : data;
+          if (!c || !c.ID) { document.getElementById('nombre').textContent = 'NO ENCONTRADO'; return; }
+
+          // Identidad
+          document.getElementById('nombre').textContent  = `SUJETO: ${c.Nombre || '-'}`;
+          document.getElementById('Ranking').textContent = (c.Ranking ?? '-');
+
+          // Círculos 1–5
+          const variante = {
+            "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+            "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+            "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
+            "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
+            "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
+          };
+          const nombres = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
+          const imgs    = {
+            "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+            "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+            "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+            "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+            "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+          };
+          const key = variante[(c.Círculo || '').toString().toUpperCase().trim()] || '1';
+          document.getElementById('circulo').textContent = `CÍRCULO: ${nombres[key]}`;
+          const imgEl = document.getElementById('circuloImagen');
+          imgEl.src = imgs[key] || '';
+          imgEl.classList.toggle('circulo-posthuman', key === '3');
+
+          // Valores base
+          let bitsDisp = num(c.bits_disponibles, num(c.Bits, 0));
+          let bitsHist = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
+
+          document.getElementById('Bits').textContent = fmt(bitsDisp);
+          document.getElementById('Visitas').textContent = fmt(c.Visitas);
+
+          // Mostrar Históricos si el endpoint lo trae
+          if (Number.isFinite(Number(bitsHist))) {
+            document.getElementById('BitsHistoricos').textContent = fmt(bitsHist);
+            document.getElementById('filaHistoricos').style.display = 'block';
+          }
+
+          // Acreditación +50 cada 2h sólo con auth=111
+          const lastKey = `ultimaAcreditacion_${id}`;
+          const last    = localStorage.getItem(lastKey);
+          const canUp   = !last || (Date.now() - Date.parse(last)) > 2*60*60*1000;
+
+          if (canUp && auth === SECRET) {
+            const nuevasVisitas = num(c.Visitas, 0) + 1;
+            bitsDisp += 50;
+            bitsHist  = Number.isFinite(Number(bitsHist)) ? (bitsHist + 50) : bitsDisp;
+
+            // UI
+            document.getElementById('Visitas').textContent        = fmt(nuevasVisitas);
+            document.getElementById('Bits').textContent           = fmt(bitsDisp);
+            document.getElementById('BitsHistoricos').textContent = fmt(bitsHist);
+            document.getElementById('filaHistoricos').style.display = 'block';
+
+            // UPDATE hoja
+            const upd = new URLSearchParams({
+              action:"update",
+              ID:c.ID, Nombre:c.Nombre || "",
+              Bits:bitsDisp,
+              Visitas:nuevasVisitas,
+              Ranking:(c.Ranking ?? ""),
+              Círculo:(c.Círculo ?? "")
+            });
+            fetch(`${API_URL}?${upd}`).catch(()=>{});
+
+            // LOG +50
+            const logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+            fetch(`${API_URL}?${logp}`).catch(()=>{});
+
+            // Feedback
+            document.getElementById('mensajeVisita').classList.add('visible');
+            document.getElementById('mensajeBits').classList.add('visible');
+            setTimeout(() => {
+              document.getElementById('mensajeVisita').classList.remove('visible');
+              document.getElementById('mensajeBits').classList.remove('visible');
+            }, 3000);
+
+            localStorage.setItem(lastKey, new Date().toISOString());
+          }
+
+          // Link info
+          if (auth !== SECRET) {
+            document.getElementById('linkFeiqui').style.display = 'inline-block';
+          } else {
+            setTimeout(() => { location.href = 'scan.html'; }, 15000);
+          }
+        })
+        .catch(err => {
+          console.error('BitCard error:', err);
+          document.getElementById('nombre').textContent = 'Error cargando datos';
+        });
+    })();
+  </script>
+</body>
+</html>
   <div class="count" id="historicosFila" style="display:none;">Históricos: <strong id="BitsHistoricos">0</strong></div>
 
   <p id="mensajeBits" class="mensaje">+50 bits</p>
@@ -81,7 +205,7 @@
       window.__BITCARD_ALREADY_RAN__ = true;
 
       // ===== CONFIG (scope local, NO global) =====
-      const API_URL = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+      const API_URL = "https://script.google.com/macros/s/AKfycbxRQK6943Uo3qZFuQzLdVtVpKyPBAxRkOk9G-GUKnyiXuvh_fIm8wUtu9ETp0XHWnBR-A/exec";
       const SECRET  = "111";
 
       // ===== UTILS =====
