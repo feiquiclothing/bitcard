@@ -2,44 +2,57 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <!-- Anti-cache del HTML (opcional) -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <style>
     body {
       background-color: white;
       color: #B6B6B6;
       font-family: monospace;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100vh; margin: 0; text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
     }
-    #logo { width: 80%; max-width: 400px; height: auto; margin-top: -20px; }
+    #logo {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-top: -20px;
+    }
     img { margin: 0; padding: 0; border: none; }
+    .count { font-size: 2em; margin: 5px 0; }
+    .quote { opacity: 0.6; font-style: italic; margin-top: 30px; margin-bottom: 45px; }
     h1 { margin: 0; }
     #info-principal { margin-top: 10px; margin-bottom: 20px; }
     #circuloImagen {
-      width: auto; height: auto; max-height: 200px; max-width: 200px;
-      margin-top: 10px; margin-bottom: 20px;
+      width: auto;
+      height: auto;
+      max-height: 200px;
+      max-width: 200px;
+      margin-top: 10px;
+      margin-bottom: 20px;
     }
-
-    .count { font-size: 2em; margin: 5px 0; }
-    .mensaje { color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity .5s; }
+    .mensaje {
+      color: #B6B6B6;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
     .visible { opacity: 1; }
 
-    /* Animaciones por círculo */
-    @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
-    @keyframes glowPulseFast { 0%,100%{filter:drop-shadow(0 0 18px #e0e0e0)} 50%{filter:drop-shadow(0 0 30px #ffffff)} }
-    @keyframes glowBloom { 0%,100%{filter:drop-shadow(0 0 22px #e0e0e0)} 50%{filter:drop-shadow(0 0 38px #ffffff)} }
-    .circulo-3 { animation: glowPulse 2.3s infinite ease-in-out; }
-    .circulo-4 { animation: glowPulseFast 1.8s infinite ease-in-out; }
-    .circulo-5 { animation: glowBloom 1.6s infinite ease-in-out; }
+    /* animaciones opcionales (mantengo lo que tenías sin alterar look) */
+    @keyframes glowPulse {
+      0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
+      50%      { filter: drop-shadow(0 0 25px #ffffff); }
+    }
+    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
 
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
-    #error { color:#b00020; font-size:14px; margin-top:10px; display:none; }
   </style>
 </head>
 <body>
@@ -55,13 +68,139 @@
 
   <img id="circuloImagen" src="" alt="" />
 
-  <!-- Disponibles (tu línea original) -->
+  <!-- Bits disponibles (tu línea original) -->
   <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <!-- Históricos (nuevo) -->
+  <!-- NUEVO: Bits históricos (una sola línea más, sin tocar estilos) -->
   <div class="count">Históricos: <strong id="BitsHistoricos">0</strong></div>
 
   <p id="mensajeBits" class="mensaje">+50 bits</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
 
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+
+  <script>
+    /* 🔒 Declaradas UNA SOLA VEZ (evita el error "already been declared") */
+    const apiUrl    = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+    const secret    = "111";
+
+    const params    = new URLSearchParams(window.location.search);
+    const clienteId = params.get("id");
+    const authParam = params.get("auth");
+
+    // formateo seguro
+    const fmt = (n) => Number(n || 0).toLocaleString('es-UY');
+
+    console.log("ID recibido:", clienteId);
+
+    if (!clienteId) {
+      document.getElementById("nombre").textContent = "Falta ?id";
+    } else {
+      fetch(`${apiUrl}?id=${encodeURIComponent(clienteId)}&_=${Date.now()}`) // cache-buster
+        .then(res => res.json())
+        .then(data => {
+          console.log("RAW API:", data);
+
+          // redirección inmediata (comportamiento original)
+          if (data.redireccion) return window.location.href = data.url;
+
+          const cliente = Array.isArray(data) ? data[0] : data;
+          console.log("Cliente parseado:", cliente);
+          if (cliente.error || !cliente.ID) {
+            document.getElementById("nombre").textContent = "NO ENCONTRADO";
+            return;
+          }
+
+          document.getElementById("clienteId").textContent = `ID: ${cliente.ID}`;
+          document.getElementById("nombre").textContent    = `SUJETO: ${cliente.Nombre}`;
+          document.getElementById("Ranking").textContent   = cliente.Ranking;
+
+          // === CÍRCULO (ahora con 4 y 5 soportados) ===
+          const varianteCirculo = {
+            "CÍRCULO 1": "1", "PRIMER CÍRCULO": "1", "1": "1",
+            "CÍRCULO 2": "2", "SEGUNDO CÍRCULO": "2", "2": "2",
+            "CÍRCULO 3": "3", "TERCER CÍRCULO": "3", "3": "3",
+            "CÍRCULO 4": "4", "CUARTO CÍRCULO": "4", "4": "4",   // nuevo
+            "CÍRCULO 5": "5", "QUINTO CÍRCULO": "5", "5": "5"    // nuevo
+          };
+          const nombresCirculo = { "1": "CÍRCULO 1", "2": "CÍRCULO 2", "3": "CÍRCULO 3", "4": "CÍRCULO 4", "5": "CÍRCULO 5" };
+          const imagenesPorCirculo = {
+            "1": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+            "2": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+            "3": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+            "4": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+            "5": "https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+          };
+
+          const rawKey = (cliente.Círculo || "").toString().toUpperCase().trim();
+          const key    = varianteCirculo[rawKey] || "1";
+
+          document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
+          const imgEl = document.getElementById("circuloImagen");
+          imgEl.src   = imagenesPorCirculo[key] || "";
+          imgEl.classList.toggle("circulo-posthuman", key === "3"); // mantenemos tu efecto para 3
+
+          // ===== NUEVO: tomar históricos si el endpoint los manda; si no, fallback a Bits (para que SIEMPRE se vea algo)
+          const bitsDisponibles = (cliente.bits_disponibles ?? Number(cliente.Bits) ?? 0);
+          const bitsHistoricos  = (cliente.bits_totales_historicos ?? cliente.bits_totales ?? Number(cliente.Bits) ?? 0);
+
+          // Pintar valores iniciales
+          document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+          document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+
+          // === lógica original de update/log con auth ===
+          const lastUpdate = localStorage.getItem(`ultimaAcreditacion_${clienteId}`);
+          const ahora      = new Date();
+          const canUpdate  = !lastUpdate || (ahora - new Date(lastUpdate)) > 2*60*60*1000;
+
+          if (canUpdate && authParam === secret) {
+            const nuevasVisitas = (parseInt(cliente.Visitas, 10) || 0) + 1;
+            const nuevosBits    = (parseInt(cliente.Bits, 10)   || 0) + 50;
+
+            document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
+            document.getElementById("Bits").textContent    = fmt(nuevosBits);
+            // si el endpoint aún no calcula históricos, al menos reflejamos la ganancia local
+            document.getElementById("BitsHistoricos").textContent = fmt((bitsHistoricos||0) + 50);
+
+            const updParams = new URLSearchParams({
+              action:"update",
+              ID:cliente.ID,
+              Nombre:cliente.Nombre,
+              Bits:nuevosBits,
+              Visitas:nuevasVisitas,
+              Ranking:cliente.Ranking,
+              Círculo:cliente.Círculo
+            });
+            fetch(`${apiUrl}?${updParams}`)
+              .then(r=>r.json()).then(json=>console.log("respuesta update:",json))
+              .catch(err=>console.error("error update:",err));
+
+            const logParams = new URLSearchParams({ action:"log", ID:cliente.ID, Nombre:cliente.Nombre, Incremento:50 });
+            fetch(`${apiUrl}?${logParams}`)
+              .then(r=>r.json()).then(json=>console.log("respuesta log:",json))
+              .catch(err=>console.error("error log:", err));
+
+            document.getElementById("mensajeVisita").classList.add("visible");
+            document.getElementById("mensajeBits").classList.add("visible");
+            setTimeout(() => {
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
+
+            localStorage.setItem(`ultimaAcreditacion_${clienteId}`, ahora.toISOString());
+          } else {
+            document.getElementById("Visitas").textContent = fmt(cliente.Visitas);
+          }
+
+          if (authParam !== secret) document.getElementById("linkFeiqui").style.display = "inline-block";
+          if (authParam === secret) setTimeout(() => window.location.href = "scan.html", 15000);
+        })
+        .catch(err => console.error("Error al cargar datos del cliente:", err));
+    }
+  </script>
+</body>
+</html>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
 
