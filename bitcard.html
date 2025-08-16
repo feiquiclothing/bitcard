@@ -2,42 +2,31 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png" />
+  <!-- Anti-cache del HTML (ayuda con algunos proxies) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <style>
     body {
-      background-color: white;
-      color: #B6B6B6;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      text-align: center;
+      background:#fff; color:#B6B6B6; font-family:monospace;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      height:100vh; margin:0; text-align:center;
     }
-    #logo {
-      width: 80%;
-      max-width: 400px;
-      height: auto;
-      margin-top: -20px;
-    }
-    img { margin: 0; padding: 0; border: none; }
-    .count { font-size: 2em; margin: 5px 0; }
-    .quote { opacity: 0.6; font-style: italic; margin-top: 30px; margin-bottom: 45px; }
-    h1 { margin: 0; }
-    #info-principal { margin-top: 10px; margin-bottom: 20px; }
-    #circuloImagen {
-      width: auto; height: auto; max-height: 200px; max-width: 200px;
-      margin-top: 10px; margin-bottom: 20px;
-    }
-    .mensaje { color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity 0.5s ease-in-out; }
-    .visible { opacity: 1; }
-    @keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); } 50% { filter: drop-shadow(0 0 25px #ffffff); } }
-    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
-    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
+    #logo { width:80%; max-width:400px; height:auto; margin-top:-20px; }
+    img { margin:0; padding:0; border:0; }
+    h1 { margin:0; }
+    #info-principal { margin-top:10px; margin-bottom:20px; }
+    #circuloImagen { max-height:200px; max-width:200px; margin:10px 0 20px; }
+    .count { font-size:2em; margin:5px 0; }
+    .mensaje { color:#B6B6B6; font-size:14px; opacity:0; transition:opacity .5s; }
+    .visible { opacity:1; }
+    @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #fff)} }
+    .circulo-posthuman { animation:glowPulse 2.3s infinite ease-in-out; }
+    #linkFeiqui { display:none; margin-top:10px; font-size:16px; color:#b6b6b6; text-decoration:none; }
+    #error { color:#b00020; font-size:14px; margin-top:10px; display:none; }
   </style>
 </head>
 <body>
@@ -53,13 +42,171 @@
 
   <img id="circuloImagen" src="" alt="" />
 
-  <!-- Bits disponibles (tu línea original) -->
+  <!-- Disponibles (tu línea original) -->
   <div class="count">Bits: <strong id="Bits">0</strong></div>
-  <!-- NUEVO: Bits históricos, manteniendo el estilo -->
+  <!-- Históricos (nuevo) -->
   <div class="count">Históricos: <strong id="BitsHistoricos">0</strong></div>
 
   <p id="mensajeBits" class="mensaje">+50 bits</p>
 
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+
+  <div id="error"></div>
+
+  <script>
+  (async () => {
+    // ===== CONFIG =====
+    const apiUrl = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+    const secret = "111";
+
+    // ===== UTILS =====
+    const qs = new URLSearchParams(location.search);
+    const debug = qs.get("debug") === "1";
+    const rawId = qs.get("id");
+    const authParam = qs.get("auth");
+    const id = rawId ? rawId.toString().padStart(3, "0") : "";
+
+    const log = (...args) => debug && console.log("[BitCard]", ...args);
+    const err = (...args) => { console.error("[BitCard]", ...args); showError(args.join(" ")); };
+
+    const fmt = (n) => {
+      const num = Number(n);
+      return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0";
+    };
+    const safeNum = (v, def=0) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : def;
+    };
+    function showError(m){
+      const el = document.getElementById("error");
+      el.textContent = m; el.style.display = "block";
+    }
+
+    if (!id) {
+      showError("Falta parámetro ?id");
+      return;
+    }
+
+    document.getElementById("clienteId").textContent = `ID: ${id}`;
+
+    // ===== FETCH =====
+    const url = `${apiUrl}?id=${encodeURIComponent(id)}&_=${Date.now()}`; // cache-bust del endpoint
+    let data;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      data = await res.json();
+      log("RAW API", data);
+    } catch (e) {
+      return err("No se pudo obtener datos del endpoint:", e.message || e);
+    }
+
+    if (data && data.error) {
+      return err("Endpoint devolvió error:", data.error);
+    }
+
+    if (data.redireccion && data.url) {
+      // PINTAMOS primero y redirigimos luego
+      setTimeout(() => { location.href = data.url; }, 1200);
+    }
+
+    const c = Array.isArray(data) ? data[0] : data;
+    if (!c || !c.ID) {
+      return err("Respuesta inválida o sin ID.");
+    }
+
+    // ===== IDENTIDAD / UI =====
+    document.getElementById("nombre").textContent  = `SUJETO: ${c.Nombre || "-"}`;
+    document.getElementById("Ranking").textContent = c.Ranking ?? "-";
+
+    const varianteCirculo = {
+      "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+      "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+      "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3"
+    };
+    const nombresCirculo = { "1":"CÍRCULO 1", "2":"CÍRCULO 2", "3":"CÍRCULO 3" };
+    const imagenesPorCirculo = {
+      "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+      "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+      "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844"
+    };
+    const key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
+    document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
+    const imgEl = document.getElementById("circuloImagen");
+    imgEl.src = imagenesPorCirculo[key] || "";
+    imgEl.classList.toggle("circulo-posthuman", key === "3");
+
+    // ===== VALORES BASE =====
+    // Disponibles: preferimos c.bits_disponibles, sino columna Bits
+    let bitsDisponibles = safeNum(c.bits_disponibles, safeNum(c.Bits, 0));
+    // Históricos: preferimos c.bits_totales_historicos; fallback a Bits (para que SIEMPRE se vea algo)
+    let bitsHistoricos  = safeNum(c.bits_totales_historicos, safeNum(c.bits_totales, safeNum(c.Bits, 0)));
+
+    // Pintar inicial
+    document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+    document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+    document.getElementById("Visitas").textContent        = fmt(c.Visitas);
+
+    // ===== ACREDITACIÓN CON AUTH =====
+    const lastUpdateKey = `ultimaAcreditacion_${id}`;
+    const lastUpdate = localStorage.getItem(lastUpdateKey);
+    const now = Date.now();
+    const canUpdate = !lastUpdate || (now - Date.parse(lastUpdate)) > 2*60*60*1000;
+
+    if (canUpdate && authParam === secret) {
+      const nuevasVisitas = safeNum(c.Visitas, 0) + 1;
+      bitsDisponibles += 50;
+      bitsHistoricos  += 50;
+
+      // UI inmediata
+      document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
+      document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+      document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+
+      // UPDATE hoja (saldo y visitas)
+      try {
+        const upd = new URLSearchParams({
+          action:"update",
+          ID:c.ID, Nombre:c.Nombre || "",
+          Bits:bitsDisponibles,
+          Visitas:nuevasVisitas,
+          Ranking:c.Ranking ?? "",
+          Círculo:c.Círculo ?? ""
+        });
+        fetch(`${apiUrl}?${upd}`).then(r=>r.json()).then(j=>log("update:", j)).catch(()=>{});
+      } catch (_) {}
+
+      // LOG earn +50 (histórico)
+      try {
+        const logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+        fetch(`${apiUrl}?${logp}`).then(r=>r.json()).then(j=>log("log:", j)).catch(()=>{});
+      } catch (_) {}
+
+      // Feedback visual
+      document.getElementById("mensajeVisita").classList.add("visible");
+      document.getElementById("mensajeBits").classList.add("visible");
+      setTimeout(() => {
+        document.getElementById("mensajeVisita").classList.remove("visible");
+        document.getElementById("mensajeBits").classList.remove("visible");
+      }, 3000);
+
+      localStorage.setItem(lastUpdateKey, new Date().toISOString());
+    }
+
+    // ===== LINK FEIQUI =====
+    if (authParam !== secret) {
+      document.getElementById("linkFeiqui").style.display = "inline-block";
+    } else {
+      setTimeout(() => location.href = "scan.html", 15000);
+    }
+
+  })();
+  </script>
+</body>
+</html>
   <div class="count">Visitas: <strong id="Visitas">0</strong></div>
   <p id="mensajeVisita" class="mensaje">+1 visita</p>
 
