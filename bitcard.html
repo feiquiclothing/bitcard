@@ -26,26 +26,18 @@
     }
     img { margin: 0; padding: 0; border: none; }
     .count { font-size: 2em; margin: 5px 0; }
-    .quote { opacity: 0.6; font-style: italic; margin-top: 30px; margin-bottom: 45px; }
     h1 { margin: 0; }
     #info-principal { margin-top: 10px; margin-bottom: 20px; }
     #circuloImagen {
-      width: auto;
-      height: auto;
-      max-height: 200px;
-      max-width: 200px;
-      margin-top: 10px;
-      margin-bottom: 20px;
+      width: auto; height: auto; max-height: 200px; max-width: 200px;
+      margin-top: 10px; margin-bottom: 20px;
     }
     .mensaje {
-      color: #B6B6B6;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
+      color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity 0.5s ease-in-out;
     }
     .visible { opacity: 1; }
 
-    /* animaciones opcionales (mantengo lo que tenías sin alterar look) */
+    /* Animación (igual a la original para círculo 3) */
     @keyframes glowPulse {
       0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
       50%      { filter: drop-shadow(0 0 25px #ffffff); }
@@ -62,6 +54,154 @@
 
   <div id="info-principal">
     <h1 id="clienteId">ID:</h1>
+    <h1 id="nombre">SUJETO:</h1>
+    <h1 id="circulo">CÍRCULO:</h1>
+  </div>
+
+  <img id="circuloImagen" src="" alt="" />
+
+  <!-- Bits disponibles (tu línea original) -->
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <!-- NUEVO: Bits históricos -->
+  <div class="count">Históricos: <strong id="BitsHistoricos">0</strong></div>
+
+  <p id="mensajeBits" class="mensaje">+50 bits</p>
+
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+
+  <script>
+    /* ==== CONFIG (una sola vez) ==== */
+    const apiUrl = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+    const secret = "111";
+
+    /* ==== UTILS ==== */
+    const params = new URLSearchParams(window.location.search);
+    const rawId = params.get("id");
+    const authParam = params.get("auth");
+    const id = rawId ? rawId.toString().padStart(3, "0") : "";
+
+    const fmt = n => {
+      const num = Number(n);
+      return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0";
+    };
+    const safeNum = (v, def=0) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : def;
+    };
+
+    if (!id) {
+      document.getElementById("nombre").textContent = "Falta ?id";
+    } else {
+      document.getElementById("clienteId").textContent = `ID: ${id}`;
+
+      fetch(`${apiUrl}?id=${encodeURIComponent(id)}&_=${Date.now()}`) // cache-buster
+        .then(res => res.json())
+        .then(data => {
+          // si hay redirección activada, comportamiento original: salir de una
+          if (data.redireccion) return window.location.href = data.url;
+
+          const c = Array.isArray(data) ? data[0] : data;
+          if (c?.error || !c?.ID) {
+            document.getElementById("nombre").textContent = "NO ENCONTRADO";
+            return;
+          }
+
+          // Identidad
+          document.getElementById("nombre").textContent  = `SUJETO: ${c.Nombre}`;
+          document.getElementById("Ranking").textContent = c.Ranking ?? "-";
+
+          // Círculos 1–5 (conservando tu efecto especial para el 3)
+          const varianteCirculo = {
+            "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+            "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+            "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
+            "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
+            "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
+          };
+          const nombresCirculo = {
+            "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"
+          };
+          const imagenesPorCirculo = {
+            "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+            "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+            "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+            "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+            "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+          };
+
+          const key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
+          document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
+          const imgEl = document.getElementById("circuloImagen");
+          imgEl.src = imagenesPorCirculo[key] || "";
+          imgEl.classList.toggle("circulo-posthuman", key === "3");
+
+          // Valores base (con fallback)
+          let bitsDisponibles = safeNum(c.bits_disponibles, safeNum(c.Bits, 0));
+          let bitsHistoricos  = safeNum(c.bits_totales_historicos, safeNum(c.bits_totales, safeNum(c.Bits, 0)));
+
+          document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+          document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+          document.getElementById("Visitas").textContent        = fmt(c.Visitas);
+
+          // Acreditación +50 si auth=111 y no se hizo en las últimas 2h (misma lógica)
+          const lastUpdateKey = `ultimaAcreditacion_${id}`;
+          const lastUpdate = localStorage.getItem(lastUpdateKey);
+          const now = Date.now();
+          const canUpdate = !lastUpdate || (now - Date.parse(lastUpdate)) > 2*60*60*1000;
+
+          if (canUpdate && authParam === secret) {
+            const nuevasVisitas = safeNum(c.Visitas, 0) + 1;
+            bitsDisponibles += 50;
+            bitsHistoricos  += 50;
+
+            // UI inmediata
+            document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
+            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+
+            // UPDATE hoja
+            const upd = new URLSearchParams({
+              action:"update",
+              ID:c.ID, Nombre:c.Nombre || "",
+              Bits:bitsDisponibles,
+              Visitas:nuevasVisitas,
+              Ranking:c.Ranking ?? "",
+              Círculo:c.Círculo ?? ""
+            });
+            fetch(`${apiUrl}?${upd}`).catch(()=>{});
+
+            // LOG +50
+            const logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+            fetch(`${apiUrl}?${logp}`).catch(()=>{});
+
+            // Feedback visual
+            document.getElementById("mensajeVisita").classList.add("visible");
+            document.getElementById("mensajeBits").classList.add("visible");
+            setTimeout(() => {
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
+
+            localStorage.setItem(lastUpdateKey, new Date().toISOString());
+          }
+
+          // Link a info (igual que antes)
+          if (authParam !== secret) {
+            document.getElementById("linkFeiqui").style.display = "inline-block";
+          } else {
+            setTimeout(() => window.location.href = "scan.html", 15000);
+          }
+        })
+        .catch(err => console.error("Error al cargar datos del cliente:", err));
+    }
+  </script>
+</body>
+</html>
     <h1 id="nombre">SUJETO:</h1>
     <h1 id="circulo">CÍRCULO:</h1>
   </div>
