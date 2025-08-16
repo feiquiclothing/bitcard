@@ -18,50 +18,196 @@
       margin: 0;
       text-align: center;
     }
-    /* Logo principal: ancho fluido pero limitado */
     #logo {
       width: 80%;
       max-width: 400px;
       height: auto;
       margin-top: -20px;
     }
-    /* Reset para otras imágenes */
-    img {
-      margin: 0;
-      padding: 0;
-      border: none;
-    }
+    img { margin: 0; padding: 0; border: none; }
     .count { font-size: 2em; margin: 5px 0; }
-    .quote {
-      opacity: 0.6;
-      font-style: italic;
-      margin-top: 30px;
-      margin-bottom: 45px;
-    }
     h1 { margin: 0; }
-    #info-principal {
-      margin-top: 10px;
-      margin-bottom: 20px;
-    }
+    #info-principal { margin-top: 10px; margin-bottom: 20px; }
     #circuloImagen {
-      width: auto;
-      height: auto;
-      max-height: 200px;
-      max-width: 200px;
-      margin-top: 10px;
-      margin-bottom: 20px;
+      width: auto; height: auto; max-height: 200px; max-width: 200px;
+      margin-top: 10px; margin-bottom: 20px;
     }
     .mensaje {
-      color: #B6B6B6;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
+      color: #B6B6B6; font-size: 14px; opacity: 0; transition: opacity 0.5s ease-in-out;
     }
     .visible { opacity: 1; }
+
     @keyframes glowPulse {
       0%, 100% { filter: drop-shadow(0 0 15px #e0e0e0); }
       50%      { filter: drop-shadow(0 0 25px #ffffff); }
     }
+    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
+
+    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <img id="logo"
+       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051"
+       alt="Logo principal" />
+
+  <div id="info-principal">
+    <h1 id="clienteId">ID:</h1>
+    <h1 id="nombre">SUJETO:</h1>
+    <h1 id="circulo">CÍRCULO:</h1>
+  </div>
+
+  <img id="circuloImagen" src="" alt="" />
+
+  <!-- Bits disponibles (tu línea original) -->
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <!-- Históricos (se mostrará si el endpoint lo manda) -->
+  <div class="count" id="historicosFila" style="display:none;">Históricos: <strong id="BitsHistoricos">0</strong></div>
+
+  <p id="mensajeBits" class="mensaje">+50 bits</p>
+
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+
+  <!-- ÚNICO script en un closure + guard para evitar dobles ejecuciones -->
+  <script>
+    (function(){
+      'use strict';
+      if (window.__BITCARD_ALREADY_RAN__) return;   // evita doble ejecución si el archivo se incluye 2 veces
+      window.__BITCARD_ALREADY_RAN__ = true;
+
+      // ===== CONFIG (scope local, NO global) =====
+      const API_URL = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
+      const SECRET  = "111";
+
+      // ===== UTILS =====
+      const qs       = new URLSearchParams(location.search);
+      const rawId    = qs.get("id");
+      const authParam= qs.get("auth");
+      const id       = rawId ? rawId.toString().padStart(3,"0") : "";
+
+      const fmt = (n) => {
+        const num = Number(n);
+        return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0";
+      };
+      const num = (v, d=0) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : d;
+      };
+
+      // ===== INIT =====
+      if (!id) { document.getElementById("nombre").textContent = "Falta ?id"; return; }
+      document.getElementById("clienteId").textContent = `ID: ${id}`;
+
+      // ===== FETCH =====
+      fetch(`${API_URL}?id=${encodeURIComponent(id)}&_=${Date.now()}`, { cache:"no-store" })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.redireccion && data?.url) { location.href = data.url; return; }
+
+          const c = Array.isArray(data) ? data[0] : data;
+          if (!c || !c.ID) { document.getElementById("nombre").textContent = "NO ENCONTRADO"; return; }
+
+          // Identidad
+          document.getElementById("nombre").textContent  = `SUJETO: ${c.Nombre || "-"}`;
+          document.getElementById("Ranking").textContent = (c.Ranking ?? "-");
+
+          // Círculo (1–3 como tu original; si querés 4/5 lo sumamos luego)
+          const varianteCirculo = {
+            "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+            "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+            "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3"
+          };
+          const nombresCirculo = { "1":"CÍRCULO 1", "2":"CÍRCULO 2", "3":"CÍRCULO 3" };
+          const imagenesPorCirculo = {
+            "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+            "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+            "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844"
+          };
+
+          const key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
+          document.getElementById("circulo").textContent = `CÍRCULO: ${nombresCirculo[key]}`;
+          const imgEl = document.getElementById("circuloImagen");
+          imgEl.src = imagenesPorCirculo[key] || "";
+          imgEl.classList.toggle("circulo-posthuman", key === "3");
+
+          // Valores base
+          document.getElementById("Bits").textContent    = fmt(c.Bits);
+          document.getElementById("Visitas").textContent = fmt(c.Visitas);
+
+          // Mostrar Históricos si el endpoint ya lo trae
+          const historicos = (c.bits_totales_historicos ?? c.bits_totales);
+          if (Number.isFinite(Number(historicos))) {
+            document.getElementById("BitsHistoricos").textContent = fmt(historicos);
+            document.getElementById("historicosFila").style.display = "block";
+          }
+
+          // Acreditación +50 (misma lógica, cada 2h, solo si auth=111)
+          const lastKey = `ultimaAcreditacion_${id}`;
+          const lastUp  = localStorage.getItem(lastKey);
+          const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
+
+          if (canUpdate && authParam === SECRET) {
+            const nuevasVisitas = num(c.Visitas, 0) + 1;
+            const nuevosBits    = num(c.Bits, 0) + 50;
+
+            // UI
+            document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
+            document.getElementById("Bits").textContent    = fmt(nuevosBits);
+
+            // Si había históricos en la respuesta, reflejamos +50 visualmente:
+            if (Number.isFinite(Number(historicos))) {
+              document.getElementById("BitsHistoricos").textContent = fmt(num(historicos, 0) + 50);
+              document.getElementById("historicosFila").style.display = "block";
+            }
+
+            // UPDATE
+            const upd = new URLSearchParams({
+              action:"update",
+              ID:c.ID, Nombre:c.Nombre || "",
+              Bits:nuevosBits,
+              Visitas:nuevasVisitas,
+              Ranking: (c.Ranking ?? ""),
+              Círculo: (c.Círculo ?? "")
+            });
+            fetch(`${API_URL}?${upd}`).catch(()=>{});
+
+            // LOG
+            const logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+            fetch(`${API_URL}?${logp}`).catch(()=>{});
+
+            // Feedback
+            document.getElementById("mensajeVisita").classList.add("visible");
+            document.getElementById("mensajeBits").classList.add("visible");
+            setTimeout(() => {
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
+
+            localStorage.setItem(lastKey, new Date().toISOString());
+          } else {
+            // Nada que sumar: ya pintado arriba
+          }
+
+          // Link info
+          if (authParam !== SECRET) {
+            document.getElementById("linkFeiqui").style.display = "inline-block";
+          } else {
+            setTimeout(() => { window.location.href = "scan.html"; }, 15000);
+          }
+        })
+        .catch(err => {
+          console.error("Error al cargar datos del cliente:", err);
+          document.getElementById("nombre").textContent = "Error cargando datos";
+        });
+    })();
+  </script>
+</body>
+</html>
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
   </style>
