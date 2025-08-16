@@ -4,36 +4,117 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BitCard</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="icon" href="favicon.png" />
   <style>
     body {
-      background:#fff; color:#B6B6B6; font-family:monospace;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      min-height:100vh; margin:0; text-align:center;
+      background: #fff; color: #B6B6B6; font-family: monospace;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; margin: 0; text-align: center;
     }
-    #logo{ width:80%; max-width:400px; height:auto; margin-top:-20px; }
-    img{ margin:0; padding:0; border:0; }
-    h1{ margin:0; }
-    #info-principal{ margin-top:10px; margin-bottom:20px; }
-    #circuloImagen{ width:auto; height:auto; max-height:200px; max-width:200px; margin:10px 0 20px; }
-    .count{ font-size:2em; margin:5px 0; }
-    .mensaje{ font-size:14px; opacity:0; transition:opacity .5s; }
-    .visible{ opacity:1; }
-    @keyframes glowPulse{ 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
-    .circulo-posthuman{ animation:glowPulse 2.3s infinite ease-in-out; }
-    #linkFeiqui{ display:none; margin-top:10px; font-size:16px; color:#b6b6b6; text-decoration:none; }
-    #version{ position:fixed; bottom:8px; right:10px; font-size:11px; opacity:.6; }
+    #logo { width: 80%; max-width: 400px; margin-top: -20px; }
+    #circuloImagen { max-height: 200px; max-width: 200px; margin: 10px 0 20px; }
+    .count { font-size: 2em; margin: 5px 0; }
+    .mensaje { font-size: 14px; opacity: 0; transition: opacity .5s; }
+    .visible { opacity: 1; }
+    @keyframes glow { 0%,100%{ filter: drop-shadow(0 0 15px #e0e0e0); } 50%{ filter: drop-shadow(0 0 25px #ffffff); } }
+    .circulo-posthuman { animation: glow 2.3s infinite ease-in-out; }
+    #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
+    #version { position: fixed; bottom: 8px; right: 10px; font-size: 11px; opacity: .6; }
   </style>
 </head>
 <body>
-  <img id="logo"
-       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051"
-       alt="Logo principal" />
+  <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051" alt="Logo Feiqui" />
+  <h1 id="clienteId">ID:</h1>
+  <h1 id="nombre">SUJETO:</h1>
+  <h1 id="circulo">CÍRCULO:</h1>
+  <img id="circuloImagen" src="" alt="" />
+  <div class="count">Bits: <strong id="Bits">0</strong></div>
+  <div class="count" id="filaHistoricos" style="display:none;">Históricos: <strong id="BitsHistoricos">0</strong></div>
+  <p id="mensajeBits" class="mensaje">+50 bits</p>
+  <div class="count">Visitas: <strong id="Visitas">0</strong></div>
+  <p id="mensajeVisita" class="mensaje">+1 visita</p>
+  <div class="count">Ranking: <strong id="Ranking">-</strong></div>
+  <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+  <div id="version">BitCard v16</div>
 
-  <div id="info-principal">
-    <h1 id="clienteId">ID:</h1>
-    <h1 id="nombre">SUJETO:</h1>
-    <h1 id="circulo">CÍRCULO:</h1>
+  <script>
+    (() => {
+      const API = "https://script.google.com/macros/s/AKfycbxRQK6943Uo3qZFuQzLdVtVpKyPBAxRkOk9G-GUKnyiXuvh_fIm8wUtu9ETp0XHWnBR-A/exec";
+      const SECRET = "111";
+      const qs = new URLSearchParams(location.search);
+      const id = (qs.get("id") || "").padStart(3, "0");
+      const auth = qs.get("auth");
+      if (!id) return document.getElementById("nombre").textContent = "Falta ?id";
+      document.getElementById("clienteId").textContent = `ID: ${id}`;
+
+      const fmt = n => Number(n).toLocaleString("es-UY");
+      const num = (v, d = 0) => Number.isFinite(+v) ? +v : d;
+
+      fetch(`${API}?id=${id}&_=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => {
+          const c = Array.isArray(data) ? data[0] : data;
+          if (!c?.ID) return document.getElementById("nombre").textContent = "NO ENCONTRADO";
+
+          document.getElementById("nombre").textContent = `SUJETO: ${c.Nombre || "-"}`;
+          document.getElementById("Ranking").textContent = c.Ranking ?? "-";
+
+          const key = {
+            "1":"CÍRCULO 1", "2":"CÍRCULO 2", "3":"CÍRCULO 3", "4":"CÍRCULO 4", "5":"CÍRCULO 5"
+          }[(c.Círculo || "1").toString()];
+          document.getElementById("circulo").textContent = `CÍRCULO: ${key}`;
+          const img = {
+            "1":"descarga1.svg", "2":"descarga2.svg", "3":"descarga3.svg", "4":"descarga4.svg", "5":"descarga5.svg"
+          }[(c.Círculo || "1").toString()];
+          const imgEl = document.getElementById("circuloImagen");
+          imgEl.src = `https://cdn.shopify.com/s/files/1/0550/5001/0810/files/${img}?v=1751840844`;
+          imgEl.classList.toggle("circulo-posthuman", c.Círculo == 3);
+
+          let bitsDisp = num(c.bits_disponibles ?? c.Bits);
+          let bitsHist = num(c.bits_totales_historicos ?? c.bits_totales ?? c.Bits);
+          document.getElementById("Bits").textContent = fmt(bitsDisp);
+          document.getElementById("Visitas").textContent = fmt(c.Visitas);
+          if (Number.isFinite(bitsHist)) {
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHist);
+            document.getElementById("filaHistoricos").style.display = "block";
+          }
+
+          const lastKey = `ultimaAcreditacion_${id}`;
+          const last = localStorage.getItem(lastKey);
+          const puedeSumar = !last || (Date.now() - Date.parse(last)) > 7200000;
+
+          if (auth === SECRET && puedeSumar) {
+            bitsDisp += 50;
+            bitsHist += 50;
+            const visitas = num(c.Visitas) + 1;
+            document.getElementById("Bits").textContent = fmt(bitsDisp);
+            document.getElementById("Visitas").textContent = fmt(visitas);
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHist);
+            document.getElementById("filaHistoricos").style.display = "block";
+
+            fetch(`${API}?action=update&ID=${c.ID}&Nombre=${encodeURIComponent(c.Nombre)}&Bits=${bitsDisp}&Visitas=${visitas}&Ranking=${c.Ranking}&Círculo=${encodeURIComponent(c.Círculo)}`).catch(() => {});
+            fetch(`${API}?action=log&ID=${c.ID}&Nombre=${encodeURIComponent(c.Nombre)}&Incremento=50`).catch(() => {});
+
+            document.getElementById("mensajeBits").classList.add("visible");
+            document.getElementById("mensajeVisita").classList.add("visible");
+            setTimeout(() => {
+              document.getElementById("mensajeBits").classList.remove("visible");
+              document.getElementById("mensajeVisita").classList.remove("visible");
+            }, 3000);
+            localStorage.setItem(lastKey, new Date().toISOString());
+            setTimeout(() => { location.href = 'scan.html'; }, 15000);
+          } else {
+            document.getElementById("linkFeiqui").style.display = "inline-block";
+          }
+        })
+        .catch(e => {
+          console.error(e);
+          document.getElementById("nombre").textContent = "No se pudo obtener datos";
+        });
+    })();
+  </script>
+</body>
+</html>
   </div>
 
   <img id="circuloImagen" src="" alt="" />
