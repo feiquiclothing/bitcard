@@ -56,7 +56,7 @@
   window.__BITCARD_RUNNING__ = true;
 
   var rawId    = qs.get("id");
-  var authParam= qs.get("auth");
+  var authParam= qs.get("auth");  // seguimos leyendo 'auth' desde la URL
   var force    = (qs.get("force") === "1");
   var debugOn  = (qs.get("debug") === "1");
   var id       = rawId ? rawId.toString().padStart(3,"0") : "";
@@ -128,7 +128,7 @@
       document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
       document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-      // eventos.json (opcional)
+      // eventos.json (opcional; admite urls_por_circulo)
       try {
         var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
         logDbg({eventos_status: evRes.status});
@@ -158,10 +158,10 @@
       if (!(authParam === SECRET && (canUpdate || force))) {
         logDbg("SKIP acreditación (cooldown o sin auth)");
       } else {
-        // === VISITA +50: POST (evita bloqueadores) ===
+        // === VISITA +50: POST (alias a,k) ===
         try {
-          // 1) touch (POST)
-          var touchBody = new URLSearchParams({ action:"touch", id:c.ID, auth:authParam });
+          // 1) touch (POST) con alias
+          var touchBody = new URLSearchParams({ a:"t", id:c.ID, k:authParam });
           logDbg({touch_post:true});
           var touchRes  = await fetch(API_URL, { method:"POST", body: touchBody, cache:"no-store" });
           logDbg({touch_status: touchRes.status});
@@ -179,22 +179,22 @@
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
           document.getElementById("mensajeBits").classList.add("visible");
 
-          // 3) update (POST, sin Visitas)
+          // 3) update (POST, alias a=u)
           var updBody = new URLSearchParams({
-            action:"update", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
+            a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
             Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
           });
           fetch(API_URL, { method:"POST", body: updBody })
             .then(r => logDbg({update_status:r.status}))
             .catch(e => logDbg({update_error:String(e)}));
 
-          // 4) log (POST)
-          var logBody = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
+          // 4) log (POST, alias a=l)
+          var logBody = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
           fetch(API_URL, { method:"POST", body: logBody })
             .then(r => logDbg({log_status:r.status}))
             .catch(e => logDbg({log_error:String(e)}));
 
-          // feedback visual + sello local
+          // feedback + sello
           setTimeout(function(){
             document.getElementById("mensajeVisita").classList.remove("visible");
             document.getElementById("mensajeBits").classList.remove("visible");
@@ -202,10 +202,10 @@
           localStorage.setItem(lastKey, new Date().toISOString());
 
         } catch (e) {
-          // Fallback (solo por si algún entorno bloquea POST): intentamos GET
+          // Fallback GET con alias por si algún entorno bloquea POST
           try {
             logDbg({touch_error:String(e), fallback:"GET touch"});
-            var touchURL = API_URL + "?" + new URLSearchParams({ action:"touch", id:c.ID, auth:authParam }).toString();
+            var touchURL = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam }).toString();
             logDbg({touch_get_url: touchURL});
             var r  = await fetch(touchURL, { cache:"no-store" });
             logDbg({touch_get_status: r.status});
@@ -222,13 +222,13 @@
             document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
             document.getElementById("mensajeBits").classList.add("visible");
 
-            // mantenemos update/log como POST
+            // mantenemos update/log como POST (alias)
             var updBody2 = new URLSearchParams({
-              action:"update", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
+              a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
               Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
             });
             fetch(API_URL, { method:"POST", body: updBody2 }).then(r2 => logDbg({update_status:r2.status}));
-            var logBody2 = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
+            var logBody2 = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
             fetch(API_URL, { method:"POST", body: logBody2 }).then(r2 => logDbg({log_status:r2.status}));
 
             localStorage.setItem(lastKey, new Date().toISOString());
