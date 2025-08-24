@@ -54,7 +54,7 @@
   <script>
   (function(){
     // --- Config ---
-    var API_URL = "https://script.google.com/macros/s/AKfycbzYXlZJTNpt9v9LWw7X8ApJ_WSzTO-fhACtwCSWBoCagQZt3IosQOW_-EFBVmXygTir-g/exec";
+    var API_URL = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
     var SECRET  = "111";
 
     if (window.__BITCARD_RUNNING__) return;
@@ -63,6 +63,7 @@
     var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
+    var force    = (qs.get("force") === "1"); // para pruebas manuales
     var id       = rawId ? rawId.toString().padStart(3,"0") : "";
 
     function fmt(n){ var num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
@@ -78,8 +79,12 @@
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
       .then(function(res){ return res.json(); })
       .then(async function(data){
-        // 1) Redirect por hoja (ID) — prioridad máxima
-        if (data && data.redireccion && data.url) {
+        // Redirecciones diferidas si hay auth (primero acreditamos)
+        var deferEventURL  = null;
+        var deferEventType = null;
+
+        // 1) Si NO hay auth, redirect por hoja (ID) va primero
+        if (authParam !== SECRET && data && data.redireccion && data.url) {
           location.href = data.url;
           return;
         }
@@ -125,7 +130,7 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-        // 2) Redirect por evento (eventos.json) — prioridad después de la hoja
+        // 2) Eventos: si hay auth, diferimos redirect hasta después de acreditar
         try {
           var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
           if (evRes.ok) {
@@ -133,93 +138,109 @@
             if (ev && ev.evento_activo) {
               var urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[key]) || ev.url;
               if (urlEvento) {
-                if (ev.tipo === "redirect") {
-                  location.href = urlEvento;
-                  return;
+                if (authParam === SECRET) {
+                  deferEventURL  = urlEvento;
+                  deferEventType = ev.tipo || "link";
                 } else {
-                  var a = document.getElementById("linkFeiqui");
-                  a.href = urlEvento;
-                  a.style.display = "inline-block";
+                  if (ev.tipo === "redirect") {
+                    location.href = urlEvento; return;
+                  } else {
+                    var a = document.getElementById("linkFeiqui");
+                    a.href = urlEvento; a.style.display = "inline-block";
+                  }
                 }
               }
             }
           }
         } catch(_) {}
 
-        // 3) Acreditación (con ventana de 2 horas): visita + +50 bits
-var lastKey   = "ultimaAcreditacion_" + id;
-var lastUp    = localStorage.getItem(lastKey);
-var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
-var force     = (qs.get("force") === "1"); // opcional para pruebas
+        // 3) Acreditación (ventana de 2h): visita + +50 bits
+        var lastKey   = "ultimaAcreditacion_" + id;
+        var lastUp    = localStorage.getItem(lastKey);
+        var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
 
-if (authParam === SECRET && (canUpdate || force)) {
-  try {
-    // 3.1) VISITA (server-side, incrementa Visitas en la hoja)
-    var visitParams = new URLSearchParams({
-      action: "visit",
-      id: c.ID,
-      auth: authParam,
-      ua: navigator.userAgent
-    });
-    var visitRes  = await fetch(API_URL + "?" + visitParams.toString(), { cache:"no-store" });
-    if (!visitRes.ok) throw new Error("visit http " + visitRes.status);
-    var visitJson = await visitRes.json().catch(function(){ return null; });
-    if (!visitJson || !visitJson.ok) throw new Error("visit json " + JSON.stringify(visitJson));
+        if (authParam === SECRET && (canUpdate || force)) {
+          try {
+            // 3.1) VISITA (server-side)
+            var visitParams = new URLSearchParams({
+              action: "visit",
+              id: c.ID,
+              auth: authParam,
+              ua: navigator.userAgent
+            });
+            var visitRes  = await fetch(API_URL + "?" + visitParams.toString(), { cache:"no-store" });
+            if (!visitRes.ok) throw new Error("visit http " + visitRes.status);
+            var visitJson = await visitRes.json().catch(function(){ return null; });
+            if (!visitJson || !visitJson.ok) throw new Error("visit json " + JSON.stringify(visitJson));
 
-    var nuevasVisitas = (typeof visitJson.visitas === "number")
-                          ? visitJson.visitas
-                          : num(c.Visitas, 0) + 1;
-    document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
-    document.getElementById("mensajeVisita").classList.add("visible");
+            var nuevasVisitas = (typeof visitJson.visitas === "number")
+                                  ? visitJson.visitas
+                                  : num(c.Visitas, 0) + 1;
+            document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
+            document.getElementById("mensajeVisita").classList.add("visible");
 
-    // 3.2) +50 BITS locales (update SIN Visitas)
-    bitsDisponibles += 50;
-    bitsHistoricos  += 50;
-    document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-    document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-    document.getElementById("mensajeBits").classList.add("visible");
+            // 3.2) +50 BITS locales (update SIN Visitas)
+            bitsDisponibles += 50;
+            bitsHistoricos  += 50;
+            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+            document.getElementById("mensajeBits").classList.add("visible");
 
-    // UPDATE (sin Visitas)
-    var upd = new URLSearchParams({
-      action: "update",
-      ID: c.ID,
-      Nombre: c.Nombre || "",
-      Bits: bitsDisponibles,
-      Ranking: (c.Ranking != null ? c.Ranking : ""),
-      Círculo: (c.Círculo != null ? c.Círculo : "")
-    });
-    fetch(API_URL + "?" + upd.toString()).catch(function(){});
+            // UPDATE (sin Visitas)
+            var upd = new URLSearchParams({
+              action: "update",
+              ID: c.ID,
+              Nombre: c.Nombre || "",
+              Bits: bitsDisponibles,
+              Ranking: (c.Ranking != null ? c.Ranking : ""),
+              Círculo: (c.Círculo != null ? c.Círculo : "")
+            });
+            fetch(API_URL + "?" + upd.toString()).catch(function(){});
 
-    // LOG +50
-    var logp = new URLSearchParams({
-      action: "log",
-      ID: c.ID,
-      Nombre: c.Nombre || "",
-      Incremento: 50
-    });
-    fetch(API_URL + "?" + logp.toString()).catch(function(){});
+            // LOG +50
+            var logp = new URLSearchParams({
+              action: "log",
+              ID: c.ID,
+              Nombre: c.Nombre || "",
+              Incremento: 50
+            });
+            fetch(API_URL + "?" + logp.toString()).catch(function(){});
 
-    // feedback y sello local
-    setTimeout(function(){
-      document.getElementById("mensajeVisita").classList.remove("visible");
-      document.getElementById("mensajeBits").classList.remove("visible");
-    }, 3000);
-    localStorage.setItem(lastKey, new Date().toISOString());
+            setTimeout(function(){
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
 
-  } catch (e) {
-    console.error("acreditacion error", e);
-  }
-}
+            localStorage.setItem(lastKey, new Date().toISOString());
+          } catch (e) {
+            console.error("acreditacion error", e);
+          }
+        }
 
-        // 4) link info / scan
+        // 4) Si hay auth, ejecutar ahora redirects diferidos (hoja y/o evento)
+        if (authParam === SECRET) {
+          // Redirect por hoja (ID) diferido
+          if (data && data.redireccion && data.url) {
+            location.href = data.url; return;
+          }
+          // Redirect por evento diferido
+          if (deferEventURL) {
+            if (deferEventType === "redirect") {
+              location.href = deferEventURL; return;
+            } else {
+              var a = document.getElementById("linkFeiqui");
+              a.href = deferEventURL; a.style.display = "inline-block";
+            }
+          }
+        }
+
+        // 5) Si no hubo redirect ni link, mostramos por defecto el link de info (solo sin auth)
         if (authParam !== SECRET) {
-          // si no hubo evento redirect y tampoco link explícito, mostramos el default
           if (document.getElementById("linkFeiqui").style.display !== "inline-block") {
             document.getElementById("linkFeiqui").style.display = "inline-block";
           }
-        } else {
-          setTimeout(function(){ location.href = "scan.html"; }, 15000);
         }
+        // Nota: se elimina cualquier redirect a scan.html
       })
       .catch(function(err){
         console.error("BitCard error:", err);
@@ -229,4 +250,3 @@ if (authParam === SECRET && (canUpdate || force)) {
   </script>
 </body>
 </html>
-
