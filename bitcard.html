@@ -48,7 +48,6 @@
 
 <script>
 (async function(){
-  // === CONFIG ===
   const qs       = new URLSearchParams(location.search);
   const API_URL  = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec";
 
@@ -68,117 +67,88 @@
   function num(v, d){ const n = Number(v); return Number.isFinite(n) ? n : (d||0); }
   function logDbg(obj){
     if (!debugOn) return;
-    const el = $('#debug'), pre = $('#dbgpre');
-    el.style.display='block';
-    pre.textContent += (typeof obj==='string'?obj:JSON.stringify(obj, null, 2)) + "\n";
+    $('#debug').style.display='block';
+    $('#dbgpre').textContent += (typeof obj==='string'?obj:JSON.stringify(obj, null, 2)) + "\n";
     try { console.log(obj); } catch(_){}
   }
-  function showPulse(elId){
-    const el = document.getElementById(elId);
-    el.classList.add("visible");
-    setTimeout(()=>el.classList.remove("visible"), 3000);
-  }
+  function showPulse(id){ const el = document.getElementById(id); el.classList.add("visible"); setTimeout(()=>el.classList.remove("visible"), 3000); }
 
   if (!id) { $('#nombre').textContent = "Falta ?id"; return; }
   $('#clienteId').textContent = "ID: " + id;
 
-  // PING (GET) — opcional
+  // Ping (opcional)
   const pingURL = API_URL + "?action=ping&_=" + Date.now();
   logDbg({API_URL, ping_url: pingURL});
-  fetch(pingURL)
-    .then(r => { logDbg({ping_status:r.status}); return r.json().catch(()=>null); })
-    .then(j => logDbg({ping_body:j}))
-    .catch(err => logDbg({ping_error:String(err)}));
+  fetch(pingURL).then(r=>r.json().catch(()=>null)).then(j=>logDbg({ping_body:j})).catch(e=>logDbg({ping_error:String(e)}));
 
-  // === util: leer perfil ===
-  async function cargarPerfil() {
-    const perfilURL = API_URL + "?" + new URLSearchParams({ id, _: Date.now() }).toString();
-    logDbg({perfil_url: perfilURL});
-    const res = await fetch(perfilURL, { cache:"no-store" });
-    logDbg({perfil_status: res.status});
-    const data = await res.json();
-    logDbg({perfil_json: data});
-    return data;
+  // Leer perfil
+  async function leerPerfil() {
+    const url = API_URL + "?" + new URLSearchParams({ id, _: Date.now() });
+    logDbg({perfil_url: url});
+    const r = await fetch(url, { cache:"no-store" });
+    logDbg({perfil_status: r.status});
+    const j = await r.json(); logDbg({perfil_json: j});
+    return j;
   }
 
-  // === util: sumar visita por GET legacy ===
-  async function sumarVisitaLegacy() {
-    // 1) a=v (visit)
-    let url = API_URL + "?" + new URLSearchParams({ a:"v", id, k:authParam, _:Date.now() }).toString();
-    logDbg({visit_url:url});
+  // Mutación apply (GET)
+  async function aplicarVisitaYBits() {
+    const url = API_URL + "?" + new URLSearchParams({ a:"apply", id, k:authParam, _: Date.now() });
+    logDbg({apply_url: url});
     try {
       const r = await fetch(url, { cache:"no-store" });
-      logDbg({visit_status:r.status});
+      logDbg({apply_status: r.status});
       const j = await r.json().catch(async ()=>({text: await r.text().catch(()=>null)}));
+      logDbg({apply_json: j});
+      return j && j.ok && j.updated ? j : null;
+    } catch (e) {
+      logDbg({apply_error:String(e)});
+      return null;
+    }
+  }
+
+  // Fallback: +1 visita y set Bits absolutos (GET)
+  async function fallbackVisitaYBits(bitsActuales) {
+    // 1) visita
+    const vurl = API_URL + "?" + new URLSearchParams({ a:"v", id, k:authParam, _: Date.now() });
+    logDbg({visit_url: vurl});
+    try {
+      const r = await fetch(vurl, { cache:"no-store" });
+      logDbg({visit_status:r.status});
+      const j = await r.json().catch(()=>null);
       logDbg({visit_json:j});
-      if (j && j.ok) return true;
     } catch(e){ logDbg({visit_error:String(e)}); }
 
-    // 2) a=t (touch)
-    url = API_URL + "?" + new URLSearchParams({ a:"t", id, k:authParam, _:Date.now() }).toString();
-    logDbg({touch_url:url});
+    // 2) set Bits absolutos (actual + 50) — IMPORTANTE: incluir k
+    const nuevo = bitsActuales + 50;
+    const qsBits = new URLSearchParams({ a:"u", ID:id, Bits:String(nuevo), k:authParam });
+    const uurl = API_URL + "?" + qsBits.toString();
+    logDbg({update_bits_url: uurl});
     try {
-      const r2 = await fetch(url, { cache:"no-store" });
-      logDbg({touch_status:r2.status});
-      const j2 = await r2.json().catch(async ()=>({text: await r2.text().catch(()=>null)}));
-      logDbg({touch_json:j2});
-      // Algunos deploys viejos devuelven perfil, verificamos por relectura luego
-    } catch(e2){ logDbg({touch_error:String(e2)}); }
+      const r2 = await fetch(uurl, { cache:"no-store" });
+      logDbg({update_bits_status:r2.status});
+      const j2 = await r2.json().catch(()=>null);
+      logDbg({update_bits_json:j2});
+    } catch(e2){ logDbg({update_bits_error:String(e2)}); }
 
-    // 3) Pixel sin CORS y verificación
-    try {
-      const img = new Image();
-      img.src = url + "&img=1";
-      logDbg({touch_img_fired:true});
-    } catch(_){}
-    await wait(700);
-    const verif = await cargarPerfil().catch(()=>null);
-    logDbg({perfil_post_img: verif});
-    return verif && typeof verif.Visitas === "number" ? verif.Visitas : false;
-  }
-
-  // === util: setear Bits absolutos (a=u por GET) ===
-  async function setBitsAbsolutos(nuevoBits, meta) {
-    const qsBits = new URLSearchParams({
-      a: "u",
-      ID: id,
-      Bits: String(nuevoBits),
-      // Mantener info adicional si existiera
-      Ranking: meta.Ranking ?? "",
-      "Círculo": meta.Círculo ?? ""
-    });
-    const url = API_URL + "?" + qsBits.toString();
-    logDbg({update_bits_url: url});
-    try {
-      const r = await fetch(url, { cache:"no-store" });
-      logDbg({update_bits_status: r.status});
-      const j = await r.json().catch(async ()=>({text: await r.text().catch(()=>null)}));
-      logDbg({update_bits_json: j});
-      return true;
-    } catch(e){ logDbg({update_bits_error:String(e)}); return false; }
+    // Verificar por relectura
+    await wait(600);
+    return await leerPerfil().catch(()=>null);
   }
 
   try {
-    const data = await cargarPerfil();
-    if (!data || !data.ID) { $('#nombre').textContent = "NO ENCONTRADO"; return; }
+    // 1) Perfil inicial
+    const data = await leerPerfil();
+    if (!data || !data.ID) { $('#nombre').textContent="NO ENCONTRADO"; return; }
 
-    // Redirección por hoja si NO hay auth
-    if (!authParam && data.redireccion && data.url) {
-      location.href = data.url; return;
-    }
+    if (!authParam && data.redireccion && data.url) { location.href = data.url; return; }
 
     // Identidad & círculo
     $('#nombre').textContent  = "SUJETO: " + (data.Nombre || "-");
     $('#Ranking').textContent = (data.Ranking != null ? data.Ranking : "-");
 
-    const variantes = {
-      "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
-      "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
-      "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
-      "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
-      "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
-    };
-    const nombres = {"1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"};
+    const variantes = {"CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1","CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2","CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3","CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4","CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"};
+    const nombres   = {"1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"};
     const imgs = {
       "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
       "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
@@ -188,67 +158,73 @@
     };
     const k = variantes[(data.Círculo || "").toString().toUpperCase().trim()] || "1";
     $('#circulo').textContent = "CÍRCULO: " + nombres[k];
-    const imgEl = $('#circuloImagen');
-    imgEl.src = imgs[k] || "";
-    imgEl.classList.toggle("circulo-posthuman", k === "3");
+    const imgEl = $('#circuloImagen'); imgEl.src = imgs[k] || ""; imgEl.classList.toggle("circulo-posthuman", k==="3");
 
     // Valores iniciales
     let bitsDisponibles = num(data.bits_disponibles, num(data.Bits, 0));
     let bitsHistoricos  = num(data.bits_totales_historicos, num(data.bits_totales, num(data.Bits, 0)));
     let visitas         = num(data.Visitas, 0);
-
     $('#Bits').textContent           = fmt(bitsDisponibles);
     $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
     $('#Visitas').textContent        = fmt(visitas);
 
-    // Cooldown 2h (override con ?force=1)
+    // Eventos opcionales (si usás data/eventos.json)
+    try {
+      const evRes = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
+      if (evRes.ok) {
+        const ev = await evRes.json();
+        if (ev && ev.evento_activo) {
+          const urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[k]) || ev.url;
+          if (urlEvento) {
+            if (!authParam && ev.tipo === "redirect") { location.href = urlEvento; return; }
+            else { const a = $('#linkFeiqui'); a.href = urlEvento; a.style.display = "inline-block"; }
+          }
+        }
+      }
+    } catch(_){}
+
+    // Cooldown 2h
     const lastKey = "ultimaAcreditacion_" + id;
     const lastUp  = localStorage.getItem(lastKey);
     const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
     logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
     if (authParam && (canUpdate || force)) {
-      // 1) Visita
-      const visitaRes = await sumarVisitaLegacy();
-      if (visitaRes) {
-        // visitaRes puede ser true o el número verificado de visitas
-        visitas = typeof visitaRes === "number" ? visitaRes : (visitas + 1);
+      // Intento 1: apply
+      const j = await aplicarVisitaYBits();
+      if (j) {
+        if (typeof j.visitas === "number") visitas = j.visitas;
+        if (typeof j.bits    === "number") bitsDisponibles = j.bits;
+        bitsHistoricos += 50;
         $('#Visitas').textContent = fmt(visitas);
-        showPulse("mensajeVisita");
-      } else {
-        logDbg({acreditacion_visita:"falló"});
-      }
-
-      // 2) Bits (a=u con Bits absolutos)
-      const nuevosBits = bitsDisponibles + 50;
-      const okBits = await setBitsAbsolutos(nuevosBits, { Ranking: data.Ranking, Círculo: data.Círculo });
-      if (okBits) {
-        bitsDisponibles = nuevosBits;
-        bitsHistoricos  = bitsHistoricos + 50;
-        $('#Bits').textContent           = fmt(bitsDisponibles);
+        $('#Bits').textContent = fmt(bitsDisponibles);
         $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
-        showPulse("mensajeBits");
+        showPulse("mensajeVisita"); showPulse("mensajeBits");
+        localStorage.setItem(lastKey, new Date().toISOString());
       } else {
-        logDbg({acreditacion_bits:"falló"});
+        // Intento 2: visita + set Bits absolutos (con k)
+        const verif = await fallbackVisitaYBits(bitsDisponibles);
+        if (verif && verif.ID) {
+          // refrescar UI con verificación
+          const vb = num(verif.bits_disponibles, num(verif.Bits, 0));
+          if (Number.isFinite(vb)) bitsDisponibles = vb;
+          visitas = num(verif.Visitas, visitas);
+          bitsHistoricos = num(verif.bits_totales_historicos, bitsHistoricos + 50);
+          $('#Visitas').textContent = fmt(visitas);
+          $('#Bits').textContent    = fmt(bitsDisponibles);
+          $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
+          showPulse("mensajeVisita"); showPulse("mensajeBits");
+          localStorage.setItem(lastKey, new Date().toISOString());
+        } else {
+          logDbg({acreditacion:"falló (apply y fallback)"});
+        }
       }
-
-      // 3) Verificación final
-      const verif = await cargarPerfil().catch(()=>null);
-      if (verif && verif.ID) {
-        if (typeof verif.Visitas === "number") $('#Visitas').textContent = fmt(verif.Visitas);
-        const verifBits = num(verif.bits_disponibles, num(verif.Bits, 0));
-        if (Number.isFinite(verifBits)) $('#Bits').textContent = fmt(verifBits);
-        const verifHist = num(verif.bits_totales_historicos, bitsHistoricos);
-        $('#BitsHistoricos').textContent = fmt(verifHist);
-      }
-      localStorage.setItem(lastKey, new Date().toISOString());
     } else {
       logDbg("SKIP acreditación (cooldown o sin auth)");
     }
 
-    // Link por defecto
-    const link = $('#linkFeiqui');
-    if (link.style.display !== "inline-block") link.style.display = "inline-block";
+    // Mostrar link por defecto
+    const link = $('#linkFeiqui'); if (link.style.display !== "inline-block") link.style.display = "inline-block";
 
   } catch (err) {
     console.error("BitCard error:", err);
