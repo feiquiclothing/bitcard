@@ -51,19 +51,14 @@
 
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
-  <!-- ÚNICO script. Va DENTRO de una función inmediatamente invocada
-       para NO dejar ninguna variable en el scope global. -->
   <script>
   (function(){
-    // --- Config en scope local (NO global) ---
     var API_URL = "https://script.google.com/macros/s/AKfycbw31uafsBx6ozuZrJhS0v00t0cICTZpUvDcbv4OVeSNaJJqMqeeo1LyDJm4d-frR1Yn7w/exec";
     var SECRET  = "111";
 
-    // Guard idempotente: si por algún motivo se incluye este archivo 2 veces, no vuelve a correr.
     if (window.__BITCARD_RUNNING__) return;
     window.__BITCARD_RUNNING__ = true;
 
-    // --- Utils (scope local) ---
     var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
@@ -78,12 +73,23 @@
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
+    // ---- NUEVO: check eventos.json global ----
+    if (qs.get("noevento") !== "1") {
+      fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
+        .then(r => r.json())
+        .then(ev => {
+          if (ev && ev.evento_activo === true && ev.url) {
+            location.href = ev.url;
+          }
+        })
+        .catch(()=>{});
+    }
+
     // --- Fetch con cache-buster ---
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
-      .then(function(res){ return res.json(); })
+      .then(res => res.json())
       .then(function(data){
         if (data && data.redireccion && data.url) {
-          // mismo comportamiento original: redirige y corta
           location.href = data.url;
           return;
         }
@@ -94,11 +100,9 @@
           return;
         }
 
-        // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
         document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
 
-        // Círculos 1–5
         var varianteCirculo = {
           "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
           "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
@@ -121,7 +125,6 @@
         imgEl.src = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
-        // Valores
         var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
         var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
 
@@ -129,7 +132,6 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-        // Acreditación +50 (auth=111) cada 2h
         var lastKey   = "ultimaAcreditacion_" + id;
         var lastUp    = localStorage.getItem(lastKey);
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
@@ -139,12 +141,10 @@
           bitsDisponibles  += 50;
           bitsHistoricos   += 50;
 
-          // UI
           document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
           document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
 
-          // UPDATE
           var upd = new URLSearchParams({
             action:"update",
             ID:c.ID, Nombre:c.Nombre || "",
@@ -153,13 +153,11 @@
             Ranking:(c.Ranking != null ? c.Ranking : ""),
             Círculo:(c.Círculo != null ? c.Círculo : "")
           });
-          fetch(API_URL + "?" + upd).catch(function(){});
+          fetch(API_URL + "?" + upd).catch(()=>{});
 
-          // LOG +50
           var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
-          fetch(API_URL + "?" + logp).catch(function(){});
+          fetch(API_URL + "?" + logp).catch(()=>{});
 
-          // feedback
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
           setTimeout(function(){
@@ -170,7 +168,6 @@
           localStorage.setItem(lastKey, new Date().toISOString());
         }
 
-        // link info
         if (authParam !== SECRET) {
           document.getElementById("linkFeiqui").style.display = "inline-block";
         } else {
