@@ -73,36 +73,44 @@
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // ---- NUEVO: check eventos.json global ----
-    if (qs.get("noevento") !== "1") {
-      fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
-        .then(r => r.json())
-        .then(ev => {
-          if (ev && ev.evento_activo === true && ev.url) {
-            location.href = ev.url;
-          }
-        })
-        .catch(()=>{});
-    }
+    // --- PREFETCH de eventos.json (no redirige todavía) ---
+    var evData = null;
+    var skipEvento = (qs.get("noevento") === "1");
+    var evPromise = skipEvento
+      ? Promise.resolve(null)
+      : fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .catch(function(){ return null; });
 
-    // --- Fetch con cache-buster ---
+    // --- Primero consultamos GAS (para darle prioridad al redirect por ID) ---
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
-      .then(res => res.json())
-      .then(function(data){
+      .then(function(res){ return res.json(); })
+      .then(async function(data){
+        // 1) Redirect por ID (bitcard_redirects) → PRIORIDAD
         if (data && data.redireccion && data.url) {
           location.href = data.url;
           return;
         }
 
+        // 2) Si no hubo redirect por ID, vemos evento global
+        try { evData = await evPromise; } catch(_) { evData = null; }
+        if (evData && evData.evento_activo === true && evData.url) {
+          location.href = String(evData.url);
+          return;
+        }
+
+        // 3) Render normal (ni redirect por ID ni evento)
         var c = Array.isArray(data) ? data[0] : data;
         if (!c || !c.ID) {
           document.getElementById("nombre").textContent = "NO ENCONTRADO";
           return;
         }
 
+        // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
         document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
 
+        // Círculos 1–5
         var varianteCirculo = {
           "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
           "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
@@ -125,6 +133,7 @@
         imgEl.src = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
+        // Valores
         var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
         var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
 
@@ -132,6 +141,7 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
+        // Acreditación +50 (auth=111) cada 2h
         var lastKey   = "ultimaAcreditacion_" + id;
         var lastUp    = localStorage.getItem(lastKey);
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
@@ -141,10 +151,12 @@
           bitsDisponibles  += 50;
           bitsHistoricos   += 50;
 
+          // UI
           document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
           document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
 
+          // UPDATE
           var upd = new URLSearchParams({
             action:"update",
             ID:c.ID, Nombre:c.Nombre || "",
@@ -153,11 +165,13 @@
             Ranking:(c.Ranking != null ? c.Ranking : ""),
             Círculo:(c.Círculo != null ? c.Círculo : "")
           });
-          fetch(API_URL + "?" + upd).catch(()=>{});
+          fetch(API_URL + "?" + upd).catch(function(){});
 
+          // LOG +50
           var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
-          fetch(API_URL + "?" + logp).catch(()=>{});
+          fetch(API_URL + "?" + logp).catch(function(){});
 
+          // feedback
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
           setTimeout(function(){
@@ -168,6 +182,7 @@
           localStorage.setItem(lastKey, new Date().toISOString());
         }
 
+        // link info
         if (authParam !== SECRET) {
           document.getElementById("linkFeiqui").style.display = "inline-block";
         } else {
@@ -182,3 +197,4 @@
   </script>
 </body>
 </html>
+
