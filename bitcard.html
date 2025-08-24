@@ -24,6 +24,7 @@
     @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
+    #debug { font-size:12px; opacity:.7; margin-top:8px; display:none; white-space:pre-wrap; }
   </style>
 </head>
 <body>
@@ -50,10 +51,11 @@
   <div class="count">Ranking: <strong id="Ranking">-</strong></div>
 
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
+  <div id="debug"></div>
 
   <script>
   (function(){
-    var API_URL = "https://script.google.com/macros/s/AKfycbwrBdTCReKzlgBIl7gcZ1uYoo2y4MofUEWlVc_ndsg0AaWXNOUUSGH57-JyZMT8BhyTOg/exec";
+    var API_URL = "https://script.google.com/macros/s/AKfycbwrBdTCReKzlgBIl7gcZ1uYoo2y4MofUEWlVc_ndsg0AaWXNOUUSGH57-JyZMT8BhyTOg/exec"; // ← pega aquí tu URL de Web App (deployment nuevo)
     var SECRET  = "111";
 
     if (window.__BITCARD_RUNNING__) return;
@@ -63,9 +65,16 @@
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
     var id       = rawId ? rawId.toString().padStart(3,"0") : "";
+    var debugOn  = qs.get("debug") === "1";
 
     function fmt(n){ var num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
     function num(v, d){ var n = Number(v); return Number.isFinite(n) ? n : (d||0); }
+    function dbg(msg){
+      if (!debugOn) return;
+      var el = document.getElementById("debug");
+      el.style.display = "block";
+      el.textContent += (typeof msg === "string" ? msg : JSON.stringify(msg)) + "\n";
+    }
 
     if (!id) {
       document.getElementById("nombre").textContent = "Falta ?id";
@@ -73,44 +82,43 @@
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // --- PREFETCH de eventos.json (no redirige todavía) ---
-    var evData = null;
-    var skipEvento = (qs.get("noevento") === "1");
-    var evPromise = skipEvento
-      ? Promise.resolve(null)
-      : fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
-          .then(function(r){ return r.ok ? r.json() : null; })
-          .catch(function(){ return null; });
-
-    // --- Primero consultamos GAS (para darle prioridad al redirect por ID) ---
+    // --- 1) GAS: PRIORIDAD ABSOLUTA DE REDIRECT POR ID ---
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
       .then(function(res){ return res.json(); })
-      .then(async function(data){
-        // 1) Redirect por ID (bitcard_redirects) → PRIORIDAD
+      .then(function(data){
+        dbg({paso:"GAS response", data:data});
+
+        // Si el GAS pide redirigir, se respeta y se corta acá
         if (data && data.redireccion && data.url) {
+          dbg("Redirect (GAS): " + data.url);
           location.href = data.url;
           return;
         }
 
-        // 2) Si no hubo redirect por ID, vemos evento global
-        try { evData = await evPromise; } catch(_) { evData = null; }
-        if (evData && evData.evento_activo === true && evData.url) {
-          location.href = String(evData.url);
-          return;
+        // --- 2) EVENTO GLOBAL (solo si GAS no redirige y noevento != 1) ---
+        if (qs.get("noevento") !== "1") {
+          fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
+            .then(function(r){ return r.json(); })
+            .then(function(ev){
+              dbg({paso:"eventos.json", ev:ev});
+              if (ev && ev.evento_activo === true && ev.url) {
+                dbg("Redirect (evento): " + ev.url);
+                location.href = ev.url;
+              }
+            })
+            .catch(function(){});
         }
 
-        // 3) Render normal (ni redirect por ID ni evento)
+        // --- 3) RENDER NORMAL CON DATOS DE GAS ---
         var c = Array.isArray(data) ? data[0] : data;
         if (!c || !c.ID) {
           document.getElementById("nombre").textContent = "NO ENCONTRADO";
           return;
         }
 
-        // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
         document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
 
-        // Círculos 1–5
         var varianteCirculo = {
           "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
           "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
@@ -133,7 +141,6 @@
         imgEl.src = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
-        // Valores
         var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
         var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
 
@@ -151,12 +158,10 @@
           bitsDisponibles  += 50;
           bitsHistoricos   += 50;
 
-          // UI
           document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
           document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
 
-          // UPDATE
           var upd = new URLSearchParams({
             action:"update",
             ID:c.ID, Nombre:c.Nombre || "",
@@ -167,11 +172,9 @@
           });
           fetch(API_URL + "?" + upd).catch(function(){});
 
-          // LOG +50
           var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
           fetch(API_URL + "?" + logp).catch(function(){});
 
-          // feedback
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
           setTimeout(function(){
@@ -182,7 +185,6 @@
           localStorage.setItem(lastKey, new Date().toISOString());
         }
 
-        // link info
         if (authParam !== SECRET) {
           document.getElementById("linkFeiqui").style.display = "inline-block";
         } else {
@@ -197,4 +199,3 @@
   </script>
 </body>
 </html>
-
