@@ -24,7 +24,7 @@
     @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
     .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display: none; margin-top: 10px; font-size: 16px; color: #b6b6b6; text-decoration: none; }
-    #debug { font-size:12px; opacity:.7; margin-top:8px; display:none; white-space:pre-wrap; }
+    #debug { font-size:12px; opacity:.7; margin-top:8px; display:none; white-space:pre-wrap; max-width:90vw; }
   </style>
 </head>
 <body>
@@ -55,8 +55,9 @@
 
   <script>
   (function(){
-    var API_URL = "https://script.google.com/macros/s/AKfycbwrBdTCReKzlgBIl7gcZ1uYoo2y4MofUEWlVc_ndsg0AaWXNOUUSGH57-JyZMT8BhyTOg/exec"; // ← pega aquí tu URL de Web App (deployment nuevo)
-    var SECRET  = "111";
+    // ← pega aquí tu URL nueva de Web App (termina en /exec)
+    var API_URL = "https://TU_WEB_APP_URL/exec";
+    var SECRET  = "111"; // coincide con BC_SECRET o valor por defecto
 
     if (window.__BITCARD_RUNNING__) return;
     window.__BITCARD_RUNNING__ = true;
@@ -78,123 +79,185 @@
 
     if (!id) {
       document.getElementById("nombre").textContent = "Falta ?id";
+      // Si querés que aún así se aplique evento global, quitá el return de abajo.
       return;
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // --- 1) GAS: PRIORIDAD ABSOLUTA DE REDIRECT POR ID ---
-    fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
-      .then(function(res){ return res.json(); })
-      .then(function(data){
-        dbg({paso:"GAS response", data:data});
+    // Mapeo para data/clientes.json cuando el valor NO es URL completa
+    var TAG_LINKS = {
+      entry:     "https://feiqui.com",
+      posthuman: "https://feiqui.com"
+    };
 
-        // Si el GAS pide redirigir, se respeta y se corta acá
+    async function pedirGAS() {
+      const url = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
+      const res = await fetch(url, { cache:"no-store" });
+      const data = await res.json();
+      dbg({paso:"GAS", data:data});
+      return data;
+    }
+
+    async function intentarClientesJson() {
+      if (qs.get("noclientes") === "1") { dbg("noclientes=1 → saltar clientes.json"); return false; }
+      try {
+        const res = await fetch("data/clientes.json?_=" + Date.now(), { cache:"no-store" });
+        const map = await res.json();
+        const raw = map && map[id];
+        if (!raw) return false;
+        let tag = String(raw).trim();
+        if (!tag || tag.toLowerCase() === "null") return false;
+
+        // Si es URL completa, usar tal cual; sino mapear por TAG_LINKS
+        if (/^https?:\/\//i.test(tag)) {
+          dbg("Redirect (clientes.json, URL directa): " + tag);
+          location.href = tag;
+          return true;
+        } else {
+          const key = tag.toLowerCase();
+          const dest = TAG_LINKS[key];
+          if (dest) {
+            dbg("Redirect (clientes.json, tag=" + key + "): " + dest);
+            location.href = dest;
+            return true;
+          }
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    async function intentarEventoGlobal() {
+      if (qs.get("noevento") === "1") { dbg("noevento=1 → saltar eventos.json"); return false; }
+      try {
+        const res = await fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" });
+        const ev = await res.json();
+        dbg({paso:"eventos.json", ev:ev});
+        if (ev && ev.evento_activo === true && ev.url) {
+          dbg("Redirect (evento): " + ev.url);
+          location.href = ev.url;
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function renderConDatos(c) {
+      document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
+      document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
+
+      var varianteCirculo = {
+        "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+        "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+        "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
+        "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
+        "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
+      };
+      var nombresCirculo = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
+      var imagenesPorCirculo = {
+        "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+        "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+        "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+        "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+        "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+      };
+
+      var key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
+      document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
+      var imgEl = document.getElementById("circuloImagen");
+      imgEl.src = imagenesPorCirculo[key] || "";
+      imgEl.classList.toggle("circulo-posthuman", key === "3");
+
+      var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
+      var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
+
+      document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+      document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+      document.getElementById("Visitas").textContent        = fmt(c.Visitas);
+
+      // Acreditación +50 (auth=111) cada 2h
+      var lastKey   = "ultimaAcreditacion_" + id;
+      var lastUp    = localStorage.getItem(lastKey);
+      var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
+
+      if (canUpdate && authParam === SECRET) {
+        var nuevasVisitas = num(c.Visitas, 0) + 1;
+        bitsDisponibles  += 50;
+        bitsHistoricos   += 50;
+
+        // UI inmediata
+        document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
+        document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+        document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+
+        // 1) UPDATE (Bits)
+        var upd = new URLSearchParams({
+          action:"update",
+          ID:c.ID, Nombre:c.Nombre || "",
+          Bits:bitsDisponibles,
+          Ranking:(c.Ranking != null ? c.Ranking : ""),
+          Círculo:(c.Círculo != null ? c.Círculo : "")
+        });
+        fetch(API_URL + "?" + upd).catch(function(){});
+
+        // 2) VISIT (incremento de Visitas real en hoja)
+        var visit = new URLSearchParams({ action:"visit", id:c.ID, auth:SECRET });
+        fetch(API_URL + "?" + visit).catch(function(){});
+
+        // 3) LOG +50
+        var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+        fetch(API_URL + "?" + logp).catch(function(){});
+
+        // feedback
+        document.getElementById("mensajeVisita").classList.add("visible");
+        document.getElementById("mensajeBits").classList.add("visible");
+        setTimeout(function(){
+          document.getElementById("mensajeVisita").classList.remove("visible");
+          document.getElementById("mensajeBits").classList.remove("visible");
+        }, 3000);
+
+        localStorage.setItem(lastKey, new Date().toISOString());
+      }
+
+      if (authParam !== SECRET) {
+        document.getElementById("linkFeiqui").style.display = "inline-block";
+      } else {
+        setTimeout(function(){ location.href = "scan.html"; }, 15000);
+      }
+    }
+
+    // Flujo principal con prioridades de redirect
+    (async function main(){
+      try {
+        const data = await pedirGAS();
+
+        // 1) GAS: si pide redirigir, se respeta y se corta
         if (data && data.redireccion && data.url) {
           dbg("Redirect (GAS): " + data.url);
           location.href = data.url;
           return;
         }
 
-        // --- 2) EVENTO GLOBAL (solo si GAS no redirige y noevento != 1) ---
-        if (qs.get("noevento") !== "1") {
-          fetch("data/eventos.json?_=" + Date.now(), { cache:"no-store" })
-            .then(function(r){ return r.json(); })
-            .then(function(ev){
-              dbg({paso:"eventos.json", ev:ev});
-              if (ev && ev.evento_activo === true && ev.url) {
-                dbg("Redirect (evento): " + ev.url);
-                location.href = ev.url;
-              }
-            })
-            .catch(function(){});
-        }
+        // 2) CLIENTES: sólo si GAS no redirige
+        const didClients = await intentarClientesJson();
+        if (didClients) return;
 
-        // --- 3) RENDER NORMAL CON DATOS DE GAS ---
-        var c = Array.isArray(data) ? data[0] : data;
+        // 3) EVENTO GLOBAL: sólo si nada previo aplicó
+        const didEvent = await intentarEventoGlobal();
+        if (didEvent) return;
+
+        // 4) Render normal
+        const c = Array.isArray(data) ? data[0] : data;
         if (!c || !c.ID) {
           document.getElementById("nombre").textContent = "NO ENCONTRADO";
           return;
         }
+        renderConDatos(c);
 
-        document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
-        document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
-
-        var varianteCirculo = {
-          "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
-          "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
-          "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
-          "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
-          "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
-        };
-        var nombresCirculo = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
-        var imagenesPorCirculo = {
-          "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
-          "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
-          "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
-          "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
-          "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
-        };
-
-        var key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
-        document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
-        var imgEl = document.getElementById("circuloImagen");
-        imgEl.src = imagenesPorCirculo[key] || "";
-        imgEl.classList.toggle("circulo-posthuman", key === "3");
-
-        var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
-        var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
-
-        document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-        document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-        document.getElementById("Visitas").textContent        = fmt(c.Visitas);
-
-        // Acreditación +50 (auth=111) cada 2h
-        var lastKey   = "ultimaAcreditacion_" + id;
-        var lastUp    = localStorage.getItem(lastKey);
-        var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
-
-        if (canUpdate && authParam === SECRET) {
-          var nuevasVisitas = num(c.Visitas, 0) + 1;
-          bitsDisponibles  += 50;
-          bitsHistoricos   += 50;
-
-          document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
-          document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-          document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-
-          var upd = new URLSearchParams({
-            action:"update",
-            ID:c.ID, Nombre:c.Nombre || "",
-            Bits:bitsDisponibles,
-            Visitas:nuevasVisitas,
-            Ranking:(c.Ranking != null ? c.Ranking : ""),
-            Círculo:(c.Círculo != null ? c.Círculo : "")
-          });
-          fetch(API_URL + "?" + upd).catch(function(){});
-
-          var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
-          fetch(API_URL + "?" + logp).catch(function(){});
-
-          document.getElementById("mensajeVisita").classList.add("visible");
-          document.getElementById("mensajeBits").classList.add("visible");
-          setTimeout(function(){
-            document.getElementById("mensajeVisita").classList.remove("visible");
-            document.getElementById("mensajeBits").classList.remove("visible");
-          }, 3000);
-
-          localStorage.setItem(lastKey, new Date().toISOString());
-        }
-
-        if (authParam !== SECRET) {
-          document.getElementById("linkFeiqui").style.display = "inline-block";
-        } else {
-          setTimeout(function(){ location.href = "scan.html"; }, 15000);
-        }
-      })
-      .catch(function(err){
+      } catch (err) {
         console.error("BitCard error:", err);
         document.getElementById("nombre").textContent = "Error cargando datos";
-      });
+      }
+    })();
   })();
   </script>
 </body>
