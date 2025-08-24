@@ -56,13 +56,14 @@
   window.__BITCARD_RUNNING__ = true;
 
   const rawId     = qs.get("id");
-  const authParam = qs.get("auth");  // validación real la hace el servidor
+  const authParam = qs.get("auth");
   const force     = (qs.get("force") === "1");
   const debugOn   = (qs.get("debug") === "1");
   const id        = rawId ? rawId.toString().padStart(3,"0") : "";
 
   const $ = (sel) => document.querySelector(sel);
 
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
   function fmt(n){ const num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
   function num(v, d){ const n = Number(v); return Number.isFinite(n) ? n : (d||0); }
   function logDbg(obj){
@@ -90,14 +91,18 @@
     .catch(err => logDbg({ping_error:String(err)}));
 
   // PERFIL (GET)
-  const perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
-  logDbg({perfil_url: perfilURL});
-
-  try {
+  async function cargarPerfil() {
+    const perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
+    logDbg({perfil_url: perfilURL});
     const res = await fetch(perfilURL, { cache:"no-store" });
     logDbg({perfil_status: res.status});
     const data = await res.json();
     logDbg({perfil_json: data});
+    return data;
+  }
+
+  try {
+    const data = await cargarPerfil();
 
     if (!data || !data.ID) { $('#nombre').textContent = "NO ENCONTRADO"; return; }
 
@@ -132,7 +137,7 @@
     imgEl.src = imgs[k] || "";
     imgEl.classList.toggle("circulo-posthuman", k === "3");
 
-    // Valores
+    // Valores iniciales
     let bitsDisponibles = num(data.bits_disponibles, num(data.Bits, 0));
     let bitsHistoricos  = num(data.bits_totales_historicos, num(data.bits_totales, num(data.Bits, 0)));
     $('#Bits').textContent           = fmt(bitsDisponibles);
@@ -166,65 +171,69 @@
     const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
     logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
-    // Si corresponde, hacemos la única llamada de mutación: POST action=update (form-encoded, sin headers)
+    // === MUTACIÓN por GET (a=t) con bonus_bits, SIN POST ===
     if (authParam && (canUpdate || force)) {
+      const touchQS = new URLSearchParams({
+        a: "t",       // alias de touch/visit
+        id: id,
+        k: authParam, // auth alias
+        bonus_bits: "50",
+        _: Date.now().toString()
+      });
+      const touchURL = API_URL + "?" + touchQS.toString();
+      logDbg({touch_get_url: touchURL});
+
+      let ok = false, j = null;
       try {
-        const form = new URLSearchParams({
-          action: "update",
-          id: id,
-          auth: authParam,
-          delta_bits: 50,
-          delta_visitas: 1
-        });
-        logDbg({update_post_body: Object.fromEntries(form)});
-
-        const r = await fetch(API_URL, {
-          method: "POST",
-          // ¡sin Content-Type para evitar preflight!
-          body: form,
-          credentials: "omit",
-          cache: "no-store",
-          mode: "cors",
-          keepalive: false
-        });
-
-        logDbg({update_post_status: r.status});
-        let j = null;
+        const r = await fetch(touchURL, { method:"GET", cache:"no-store", credentials:"omit", mode:"cors" });
+        logDbg({touch_get_status: r.status});
         try {
           j = await r.json();
         } catch {
           const t = await r.text().catch(()=> "");
-          logDbg({update_post_text: t});
+          logDbg({touch_get_text: t});
         }
-        logDbg({update_post_json: j});
+        logDbg({touch_get_json: j});
+        ok = !!(j && j.ok);
+      } catch (e) {
+        logDbg({touch_get_error: String(e)});
+      }
 
-        if (!j || !j.ok || !j.updated) throw new Error("update_failed");
+      if (!ok) {
+        // Fallback sin CORS: pixel <img> y verificación por relectura de perfil
+        try {
+          const img = new Image();
+          img.src = touchURL + "&img=1";
+          logDbg({touch_img_fired:true});
+        } catch(_){}
+        await wait(700); // pequeña espera para que GAS procese
+        try {
+          const verif = await cargarPerfil();
+          logDbg({perfil_post_img: verif});
+          if (verif && verif.Visitas > data.Visitas) {
+            ok = true;
+            j = { visitas: verif.Visitas, bits: num(verif.bits_disponibles, num(verif.Bits, 0)) };
+          }
+        } catch(e2){
+          logDbg({perfil_verif_error:String(e2)});
+        }
+      }
 
-        // Reflejar nuevos valores
-        if (typeof j.visitas === "number") $('#Visitas').textContent = fmt(j.visitas);
-        const nuevosBits = (typeof j.bits === "number") ? j.bits : (bitsDisponibles + 50);
-        const nuevosHist = bitsHistoricos + 50; // históricos: suma lógica
+      if (ok) {
+        // Refrescar UI según respuesta o verificación
+        const nuevasVisitas = (j && typeof j.visitas === "number") ? j.visitas : (num(data.Visitas,0) + 1);
+        const nuevosBits    = (j && typeof j.bits    === "number") ? j.bits    : (bitsDisponibles + 50);
+        const nuevosHist    = bitsHistoricos + 50;
+
+        $('#Visitas').textContent        = fmt(nuevasVisitas);
         $('#Bits').textContent           = fmt(nuevosBits);
         $('#BitsHistoricos').textContent = fmt(nuevosHist);
 
         showPulse("mensajeVisita");
         showPulse("mensajeBits");
         localStorage.setItem(lastKey, new Date().toISOString());
-
-        // (Opcional) log en bit_logs:
-        /*
-        const logForm = new URLSearchParams({
-          action: "log",
-          id: id,
-          auth: authParam,
-          tipo: "visit",
-          delta_bits: 50
-        });
-        fetch(API_URL, { method:"POST", body: logForm }).then(r2 => logDbg({log_status:r2.status})).catch(e2 => logDbg({log_error:String(e2)}));
-        */
-      } catch (err) {
-        logDbg({update_error:String(err)});
-        // UI no cambia si el servidor rechazó la mutación
+      } else {
+        logDbg({touch_result:"failed_after_fallbacks"});
       }
     } else {
       logDbg("SKIP acreditación (cooldown o sin auth)");
@@ -252,3 +261,4 @@
 </script>
 </body>
 </html>
+
