@@ -28,7 +28,7 @@
 </head>
 <body>
   <img id="logo"
-       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051"
+       src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051"
        alt="Logo principal" />
 
   <div id="info-principal">
@@ -53,15 +53,11 @@
 
   <script>
   (function(){
-    // --- Config local ---
     var API_URL = "https://script.google.com/macros/s/AKfycbwrBdTCReKzlgBIl7gcZ1uYoo2y4MofUEWlVc_ndsg0AaWXNOUUSGH57-JyZMT8BhyTOg/exec";
-    var SECRET  = "111"; // debe coincidir con BC_SECRET en el GAS
-
-    // Guard idempotente
+    var SECRET  = "111";
     if (window.__BITCARD_RUNNING__) return;
     window.__BITCARD_RUNNING__ = true;
 
-    // --- Utils ---
     var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
@@ -76,7 +72,6 @@
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // Catálogo círculos
     var varianteCirculo = {
       "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
       "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
@@ -93,12 +88,10 @@
       "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
     };
 
-    // --- Fetch principal ---
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
-      .then(function(res){ return res.json(); })
-      .then(function(data){
+      .then(res => res.json())
+      .then(data => {
         console.log("BitCard GAS version:", data && data.version);
-
         if (data && data.redireccion && data.url) {
           location.href = data.url;
           return;
@@ -110,14 +103,9 @@
           return;
         }
 
-        // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
+        document.getElementById("Ranking").textContent = (c.Ranking !== undefined && c.Ranking !== null && c.Ranking !== "" ? c.Ranking : "-");
 
-        // Ranking
-        document.getElementById("Ranking").textContent =
-          (c.Ranking !== undefined && c.Ranking !== null && c.Ranking !== "" ? c.Ranking : "-");
-
-        // Círculo (fallback server-side)
         var circleRaw = (c.Círculo || "").toString().toUpperCase().trim();
         var key = varianteCirculo[circleRaw] || "1";
         document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
@@ -125,7 +113,6 @@
         imgEl.src = imagenesPorCirculo[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
 
-        // Valores
         var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
         var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
         var visitas         = num(c.Visitas, 0);
@@ -134,56 +121,29 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(visitas);
 
-        // Acreditación +50 cada 2h (sin exigir ?auth= en la URL; SIEMPRE envía auth al backend)
         var lastKey   = "ultimaAcreditacion_" + id;
         var lastUp    = localStorage.getItem(lastKey);
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
 
-        if (canUpdate) {
+        if (canUpdate && authParam === SECRET) {
           var nuevasVisitas = visitas + 1;
           var nuevosBits    = bitsDisponibles + 50;
           var nuevosHist    = bitsHistoricos + 50;
 
-          // UI inmediata (optimista)
           document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
           document.getElementById("Bits").textContent           = fmt(nuevosBits);
           document.getElementById("BitsHistoricos").textContent = fmt(nuevosHist);
 
-          // 1) VISIT (sumar visita) — requiere auth correcto en el backend
-          fetch(API_URL + "?" + new URLSearchParams({
-            action: "visit",
-            id: c.ID,
-            auth: SECRET
-          }), { cache:"no-store" })
-          .then(r => r.json()).then(j => {
-            console.log("[visit] resp:", j);
-          }).catch(()=>{});
-
-          // 2) UPDATE (solo permitidos; NO enviar Círculo ni Visitas)
-          var upd = new URLSearchParams({
-            action: "update",
-            ID: c.ID,
-            Nombre: c.Nombre || "",
-            Bits: nuevosBits,
-            Ranking: (c.Ranking != null ? c.Ranking : ""),
-            auth: SECRET // si el GAS pide auth para update
-          });
-          fetch(API_URL + "?" + upd, { cache:"no-store" })
-          .then(r => r.json()).then(j => {
-            console.log("[update] resp:", j);
-          }).catch(()=>{});
-
-          // 3) LOG +50
+          // 🔥 Log único: suma bits, historial, visitas y registra en bit_logs
           var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
           fetch(API_URL + "?" + logp, { cache:"no-store" })
           .then(r => r.json()).then(j => {
             console.log("[log] resp:", j);
           }).catch(()=>{});
 
-          // Feedback visual
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
-          setTimeout(function(){
+          setTimeout(() => {
             document.getElementById("mensajeVisita").classList.remove("visible");
             document.getElementById("mensajeBits").classList.remove("visible");
           }, 3000);
@@ -191,14 +151,13 @@
           localStorage.setItem(lastKey, new Date().toISOString());
         }
 
-        // link info / redirect
         if (authParam !== SECRET) {
           document.getElementById("linkFeiqui").style.display = "inline-block";
         } else {
-          setTimeout(function(){ location.href = "scan.html"; }, 15000);
+          setTimeout(() => { location.href = "scan.html"; }, 15000);
         }
       })
-      .catch(function(err){
+      .catch(err => {
         console.error("BitCard error:", err);
         document.getElementById("nombre").textContent = "Error cargando datos";
       });
