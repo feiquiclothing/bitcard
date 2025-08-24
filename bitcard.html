@@ -63,7 +63,7 @@
     var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
-    var force    = (qs.get("force") === "1"); // para pruebas manuales
+    var force    = (qs.get("force") === "1"); // para pruebas
     var id       = rawId ? rawId.toString().padStart(3,"0") : "";
 
     function fmt(n){ var num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
@@ -79,11 +79,10 @@
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
       .then(function(res){ return res.json(); })
       .then(async function(data){
-        // Redirecciones diferidas si hay auth (primero acreditamos)
-        var deferEventURL  = null;
-        var deferEventType = null;
+        // defer de redirects si hay auth (para acreditar antes)
+        var deferEventURL  = null, deferEventType = null;
 
-        // 1) Si NO hay auth, redirect por hoja (ID) va primero
+        // 1) Redirect por hoja (ID)
         if (authParam !== SECRET && data && data.redireccion && data.url) {
           location.href = data.url;
           return;
@@ -130,7 +129,7 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-        // 2) Eventos: si hay auth, diferimos redirect hasta después de acreditar
+        // 2) Eventos por círculo
         try {
           var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
           if (evRes.ok) {
@@ -139,6 +138,7 @@
               var urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[key]) || ev.url;
               if (urlEvento) {
                 if (authParam === SECRET) {
+                  // deferir si hay auth para acreditar primero
                   deferEventURL  = urlEvento;
                   deferEventType = ev.tipo || "link";
                 } else {
@@ -154,14 +154,14 @@
           }
         } catch(_) {}
 
-        // 3) Acreditación (ventana de 2h): visita + +50 bits
+        // 3) Acreditación (2 horas): visita + +50 bits
         var lastKey   = "ultimaAcreditacion_" + id;
         var lastUp    = localStorage.getItem(lastKey);
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
 
         if (authParam === SECRET && (canUpdate || force)) {
           try {
-            // 3.1) VISITA (server-side)
+            // VISITA (server)
             var visitParams = new URLSearchParams({
               action: "visit",
               id: c.ID,
@@ -172,21 +172,18 @@
             if (!visitRes.ok) throw new Error("visit http " + visitRes.status);
             var visitJson = await visitRes.json().catch(function(){ return null; });
             if (!visitJson || !visitJson.ok) throw new Error("visit json " + JSON.stringify(visitJson));
-
             var nuevasVisitas = (typeof visitJson.visitas === "number")
                                   ? visitJson.visitas
                                   : num(c.Visitas, 0) + 1;
             document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
             document.getElementById("mensajeVisita").classList.add("visible");
 
-            // 3.2) +50 BITS locales (update SIN Visitas)
-            bitsDisponibles += 50;
-            bitsHistoricos  += 50;
+            // +50 bits locales (update SIN Visitas)
+            bitsDisponibles += 50; bitsHistoricos += 50;
             document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
             document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
             document.getElementById("mensajeBits").classList.add("visible");
 
-            // UPDATE (sin Visitas)
             var upd = new URLSearchParams({
               action: "update",
               ID: c.ID,
@@ -197,7 +194,6 @@
             });
             fetch(API_URL + "?" + upd.toString()).catch(function(){});
 
-            // LOG +50
             var logp = new URLSearchParams({
               action: "log",
               ID: c.ID,
@@ -217,30 +213,25 @@
           }
         }
 
-        // 4) Si hay auth, ejecutar ahora redirects diferidos (hoja y/o evento)
+        // 4) Ejecutar redirects diferidos (si hay auth)
         if (authParam === SECRET) {
-          // Redirect por hoja (ID) diferido
           if (data && data.redireccion && data.url) {
             location.href = data.url; return;
           }
-          // Redirect por evento diferido
           if (deferEventURL) {
             if (deferEventType === "redirect") {
               location.href = deferEventURL; return;
             } else {
-              var a = document.getElementById("linkFeiqui");
-              a.href = deferEventURL; a.style.display = "inline-block";
+              var a2 = document.getElementById("linkFeiqui");
+              a2.href = deferEventURL; a2.style.display = "inline-block";
             }
           }
         }
 
-        // 5) Si no hubo redirect ni link, mostramos por defecto el link de info (solo sin auth)
-        if (authParam !== SECRET) {
-          if (document.getElementById("linkFeiqui").style.display !== "inline-block") {
-            document.getElementById("linkFeiqui").style.display = "inline-block";
-          }
+        // 5) Si no hay redirect, mostrar link por defecto si no se mostró otro
+        if (document.getElementById("linkFeiqui").style.display !== "inline-block") {
+          document.getElementById("linkFeiqui").style.display = "inline-block";
         }
-        // Nota: se elimina cualquier redirect a scan.html
       })
       .catch(function(err){
         console.error("BitCard error:", err);
