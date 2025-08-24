@@ -62,8 +62,8 @@
   const id        = rawId ? rawId.toString().padStart(3,"0") : "";
 
   const $ = (sel) => document.querySelector(sel);
-
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
   function fmt(n){ const num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
   function num(v, d){ const n = Number(v); return Number.isFinite(n) ? n : (d||0); }
   function logDbg(obj){
@@ -90,9 +90,9 @@
     .then(j => logDbg({ping_body:j}))
     .catch(err => logDbg({ping_error:String(err)}));
 
-  // PERFIL (GET)
+  // === util: leer perfil ===
   async function cargarPerfil() {
-    const perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
+    const perfilURL = API_URL + "?" + new URLSearchParams({ id, _: Date.now() }).toString();
     logDbg({perfil_url: perfilURL});
     const res = await fetch(perfilURL, { cache:"no-store" });
     logDbg({perfil_status: res.status});
@@ -101,9 +101,65 @@
     return data;
   }
 
+  // === util: sumar visita por GET legacy ===
+  async function sumarVisitaLegacy() {
+    // 1) a=v (visit)
+    let url = API_URL + "?" + new URLSearchParams({ a:"v", id, k:authParam, _:Date.now() }).toString();
+    logDbg({visit_url:url});
+    try {
+      const r = await fetch(url, { cache:"no-store" });
+      logDbg({visit_status:r.status});
+      const j = await r.json().catch(async ()=>({text: await r.text().catch(()=>null)}));
+      logDbg({visit_json:j});
+      if (j && j.ok) return true;
+    } catch(e){ logDbg({visit_error:String(e)}); }
+
+    // 2) a=t (touch)
+    url = API_URL + "?" + new URLSearchParams({ a:"t", id, k:authParam, _:Date.now() }).toString();
+    logDbg({touch_url:url});
+    try {
+      const r2 = await fetch(url, { cache:"no-store" });
+      logDbg({touch_status:r2.status});
+      const j2 = await r2.json().catch(async ()=>({text: await r2.text().catch(()=>null)}));
+      logDbg({touch_json:j2});
+      // Algunos deploys viejos devuelven perfil, verificamos por relectura luego
+    } catch(e2){ logDbg({touch_error:String(e2)}); }
+
+    // 3) Pixel sin CORS y verificación
+    try {
+      const img = new Image();
+      img.src = url + "&img=1";
+      logDbg({touch_img_fired:true});
+    } catch(_){}
+    await wait(700);
+    const verif = await cargarPerfil().catch(()=>null);
+    logDbg({perfil_post_img: verif});
+    return verif && typeof verif.Visitas === "number" ? verif.Visitas : false;
+  }
+
+  // === util: setear Bits absolutos (a=u por GET) ===
+  async function setBitsAbsolutos(nuevoBits, meta) {
+    const qsBits = new URLSearchParams({
+      a: "u",
+      ID: id,
+      Bits: String(nuevoBits),
+      // Mantener info adicional si existiera
+      Ranking: meta.Ranking ?? "",
+      "Círculo": meta.Círculo ?? ""
+    });
+    const url = API_URL + "?" + qsBits.toString();
+    logDbg({update_bits_url: url});
+    try {
+      const r = await fetch(url, { cache:"no-store" });
+      logDbg({update_bits_status: r.status});
+      const j = await r.json().catch(async ()=>({text: await r.text().catch(()=>null)}));
+      logDbg({update_bits_json: j});
+      return true;
+    } catch(e){ logDbg({update_bits_error:String(e)}); return false; }
+  }
+
   try {
     const data = await cargarPerfil();
-
     if (!data || !data.ID) { $('#nombre').textContent = "NO ENCONTRADO"; return; }
 
     // Redirección por hoja si NO hay auth
@@ -111,11 +167,10 @@
       location.href = data.url; return;
     }
 
-    // Identidad
+    // Identidad & círculo
     $('#nombre').textContent  = "SUJETO: " + (data.Nombre || "-");
     $('#Ranking').textContent = (data.Ranking != null ? data.Ranking : "-");
 
-    // Círculo → nombre + imagen
     const variantes = {
       "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
       "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
@@ -140,118 +195,60 @@
     // Valores iniciales
     let bitsDisponibles = num(data.bits_disponibles, num(data.Bits, 0));
     let bitsHistoricos  = num(data.bits_totales_historicos, num(data.bits_totales, num(data.Bits, 0)));
+    let visitas         = num(data.Visitas, 0);
+
     $('#Bits').textContent           = fmt(bitsDisponibles);
     $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
-    $('#Visitas').textContent        = fmt(data.Visitas);
+    $('#Visitas').textContent        = fmt(visitas);
 
-    // Eventos (opcional)
-    let deferEventURL = null, deferEventType = null;
-    try {
-      const evRes = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
-      logDbg({eventos_status: evRes.status});
-      if (evRes.ok) {
-        const ev = await evRes.json();
-        logDbg({eventos_json: ev});
-        if (ev && ev.evento_activo) {
-          const urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[k]) || ev.url;
-          if (urlEvento) {
-            if (authParam) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
-            else {
-              if (ev.tipo === "redirect") { location.href = urlEvento; return; }
-              else { const a = $('#linkFeiqui'); a.href = urlEvento; a.style.display = "inline-block"; }
-            }
-          }
-        }
-      }
-    } catch(e){ logDbg({eventos_error:String(e)}); }
-
-    // Cooldown local 2h (override con ?force=1)
+    // Cooldown 2h (override con ?force=1)
     const lastKey = "ultimaAcreditacion_" + id;
     const lastUp  = localStorage.getItem(lastKey);
     const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
     logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
-    // === MUTACIÓN por GET (a=t) con bonus_bits, SIN POST ===
     if (authParam && (canUpdate || force)) {
-      const touchQS = new URLSearchParams({
-        a: "t",       // alias de touch/visit
-        id: id,
-        k: authParam, // auth alias
-        bonus_bits: "50",
-        _: Date.now().toString()
-      });
-      const touchURL = API_URL + "?" + touchQS.toString();
-      logDbg({touch_get_url: touchURL});
-
-      let ok = false, j = null;
-      try {
-        const r = await fetch(touchURL, { method:"GET", cache:"no-store", credentials:"omit", mode:"cors" });
-        logDbg({touch_get_status: r.status});
-        try {
-          j = await r.json();
-        } catch {
-          const t = await r.text().catch(()=> "");
-          logDbg({touch_get_text: t});
-        }
-        logDbg({touch_get_json: j});
-        ok = !!(j && j.ok);
-      } catch (e) {
-        logDbg({touch_get_error: String(e)});
-      }
-
-      if (!ok) {
-        // Fallback sin CORS: pixel <img> y verificación por relectura de perfil
-        try {
-          const img = new Image();
-          img.src = touchURL + "&img=1";
-          logDbg({touch_img_fired:true});
-        } catch(_){}
-        await wait(700); // pequeña espera para que GAS procese
-        try {
-          const verif = await cargarPerfil();
-          logDbg({perfil_post_img: verif});
-          if (verif && verif.Visitas > data.Visitas) {
-            ok = true;
-            j = { visitas: verif.Visitas, bits: num(verif.bits_disponibles, num(verif.Bits, 0)) };
-          }
-        } catch(e2){
-          logDbg({perfil_verif_error:String(e2)});
-        }
-      }
-
-      if (ok) {
-        // Refrescar UI según respuesta o verificación
-        const nuevasVisitas = (j && typeof j.visitas === "number") ? j.visitas : (num(data.Visitas,0) + 1);
-        const nuevosBits    = (j && typeof j.bits    === "number") ? j.bits    : (bitsDisponibles + 50);
-        const nuevosHist    = bitsHistoricos + 50;
-
-        $('#Visitas').textContent        = fmt(nuevasVisitas);
-        $('#Bits').textContent           = fmt(nuevosBits);
-        $('#BitsHistoricos').textContent = fmt(nuevosHist);
-
+      // 1) Visita
+      const visitaRes = await sumarVisitaLegacy();
+      if (visitaRes) {
+        // visitaRes puede ser true o el número verificado de visitas
+        visitas = typeof visitaRes === "number" ? visitaRes : (visitas + 1);
+        $('#Visitas').textContent = fmt(visitas);
         showPulse("mensajeVisita");
-        showPulse("mensajeBits");
-        localStorage.setItem(lastKey, new Date().toISOString());
       } else {
-        logDbg({touch_result:"failed_after_fallbacks"});
+        logDbg({acreditacion_visita:"falló"});
       }
+
+      // 2) Bits (a=u con Bits absolutos)
+      const nuevosBits = bitsDisponibles + 50;
+      const okBits = await setBitsAbsolutos(nuevosBits, { Ranking: data.Ranking, Círculo: data.Círculo });
+      if (okBits) {
+        bitsDisponibles = nuevosBits;
+        bitsHistoricos  = bitsHistoricos + 50;
+        $('#Bits').textContent           = fmt(bitsDisponibles);
+        $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
+        showPulse("mensajeBits");
+      } else {
+        logDbg({acreditacion_bits:"falló"});
+      }
+
+      // 3) Verificación final
+      const verif = await cargarPerfil().catch(()=>null);
+      if (verif && verif.ID) {
+        if (typeof verif.Visitas === "number") $('#Visitas').textContent = fmt(verif.Visitas);
+        const verifBits = num(verif.bits_disponibles, num(verif.Bits, 0));
+        if (Number.isFinite(verifBits)) $('#Bits').textContent = fmt(verifBits);
+        const verifHist = num(verif.bits_totales_historicos, bitsHistoricos);
+        $('#BitsHistoricos').textContent = fmt(verifHist);
+      }
+      localStorage.setItem(lastKey, new Date().toISOString());
     } else {
       logDbg("SKIP acreditación (cooldown o sin auth)");
     }
 
-    // Redirecciones diferidas (si hay auth)
-    if (authParam) {
-      if (data.redireccion && data.url) { location.href = data.url; return; }
-      if (deferEventURL) {
-        if (deferEventType === "redirect") { location.href = deferEventURL; return; }
-        else { const a2 = $('#linkFeiqui'); a2.href = deferEventURL; a2.style.display = "inline-block"; }
-      }
-    }
-
-    // Link por defecto visible si nada más aplicó
-    if ($('#linkFeiqui').style.display !== "inline-block") {
-      $('#linkFeiqui').style.display = "inline-block";
-    }
+    // Link por defecto
+    const link = $('#linkFeiqui');
+    if (link.style.display !== "inline-block") link.style.display = "inline-block";
 
   } catch (err) {
     console.error("BitCard error:", err);
@@ -261,4 +258,3 @@
 </script>
 </body>
 </html>
-
