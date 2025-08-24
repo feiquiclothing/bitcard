@@ -6,7 +6,8 @@
   <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <style>
-    body { background:#fff; color:#B6B6B6; font-family:monospace; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center; }
+    :root { color-scheme: light; }
+    body { background:#fff; color:#B6B6B6; font-family:monospace; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; }
     #logo { width:80%; max-width:400px; height:auto; margin-top:-20px; }
     .count { font-size:2em; margin:5px 0; }
     #info-principal { margin-top:10px; margin-bottom:20px; }
@@ -16,9 +17,9 @@
     @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
     .circulo-posthuman { animation:glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display:none; margin-top:10px; font-size:16px; color:#b6b6b6; text-decoration:none; }
-    #debug { position:fixed; bottom:10px; left:10px; right:10px; max-height:40vh; overflow:auto; background:rgba(0,0,0,.7); color:#0f0; font:12px/1.3 monospace; padding:8px; border-radius:8px; display:none; text-align:left; }
+    #debug { position:fixed; bottom:10px; left:10px; right:10px; max-height:40vh; overflow:auto; background:rgba(0,0,0,.78); color:#0f0; font:12px/1.3 monospace; padding:8px; border-radius:8px; display:none; text-align:left; }
     #debug h3 { margin:0 0 6px 0; color:#fff; }
-    #debug pre { white-space:pre-wrap; word-break:break-word; }
+    #debug pre { white-space:pre-wrap; word-break:break-word; margin:0; }
   </style>
 </head>
 <body>
@@ -46,36 +47,42 @@
   <div id="debug"><h3>DEBUG</h3><pre id="dbgpre"></pre></div>
 
 <script>
-(function(){
+(async function(){
   // === CONFIG ===
-  var qs       = new URLSearchParams(location.search);
-  var API_URL  = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec";
+  const qs       = new URLSearchParams(location.search);
+  const API_URL  = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec";
 
   if (window.__BITCARD_RUNNING__) return;
   window.__BITCARD_RUNNING__ = true;
 
-  var rawId    = qs.get("id");
-  var authParam= qs.get("auth");  // el servidor valida; aquí sólo chequeamos presencia
-  var force    = (qs.get("force") === "1");
-  var debugOn  = (qs.get("debug") === "1");
-  var id       = rawId ? rawId.toString().padStart(3,"0") : "";
+  const rawId     = qs.get("id");
+  const authParam = qs.get("auth");  // validación real la hace el servidor
+  const force     = (qs.get("force") === "1");
+  const debugOn   = (qs.get("debug") === "1");
+  const id        = rawId ? rawId.toString().padStart(3,"0") : "";
 
-  function fmt(n){ var num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
-  function num(v, d){ var n = Number(v); return Number.isFinite(n) ? n : (d||0); }
+  const $ = (sel) => document.querySelector(sel);
+
+  function fmt(n){ const num = Number(n); return Number.isFinite(num) ? num.toLocaleString("es-UY") : "0"; }
+  function num(v, d){ const n = Number(v); return Number.isFinite(n) ? n : (d||0); }
   function logDbg(obj){
     if (!debugOn) return;
-    var el = document.getElementById('debug');
-    var pre= document.getElementById('dbgpre');
+    const el = $('#debug'), pre = $('#dbgpre');
     el.style.display='block';
     pre.textContent += (typeof obj==='string'?obj:JSON.stringify(obj, null, 2)) + "\n";
-    console.log(obj);
+    try { console.log(obj); } catch(_){}
+  }
+  function showPulse(elId){
+    const el = document.getElementById(elId);
+    el.classList.add("visible");
+    setTimeout(()=>el.classList.remove("visible"), 3000);
   }
 
-  if (!id) { document.getElementById("nombre").textContent = "Falta ?id"; return; }
-  document.getElementById("clienteId").textContent = "ID: " + id;
+  if (!id) { $('#nombre').textContent = "Falta ?id"; return; }
+  $('#clienteId').textContent = "ID: " + id;
 
-  // PING (GET)
-  var pingURL = API_URL + "?action=ping&_=" + Date.now();
+  // PING (GET) — opcional
+  const pingURL = API_URL + "?action=ping&_=" + Date.now();
   logDbg({API_URL, ping_url: pingURL});
   fetch(pingURL)
     .then(r => { logDbg({ping_status:r.status}); return r.json().catch(()=>null); })
@@ -83,211 +90,153 @@
     .catch(err => logDbg({ping_error:String(err)}));
 
   // PERFIL (GET)
-  var perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
+  const perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
   logDbg({perfil_url: perfilURL});
-  fetch(perfilURL, { cache:"no-store" })
-    .then(res => { logDbg({perfil_status:res.status}); return res.json(); })
-    .then(async function(data){
-      logDbg({perfil_json:data});
 
-      var deferEventURL  = null, deferEventType = null;
+  try {
+    const res = await fetch(perfilURL, { cache:"no-store" });
+    logDbg({perfil_status: res.status});
+    const data = await res.json();
+    logDbg({perfil_json: data});
 
-      // redirect por hoja si NO hay auth
-      if (!authParam && data && data.redireccion && data.url) {
-        location.href = data.url; return;
-      }
+    if (!data || !data.ID) { $('#nombre').textContent = "NO ENCONTRADO"; return; }
 
-      var c = Array.isArray(data) ? data[0] : data;
-      if (!c || !c.ID) { document.getElementById("nombre").textContent = "NO ENCONTRADO"; return; }
+    // Redirección por hoja si NO hay auth
+    if (!authParam && data.redireccion && data.url) {
+      location.href = data.url; return;
+    }
 
-      // identidad
-      document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
-      document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
+    // Identidad
+    $('#nombre').textContent  = "SUJETO: " + (data.Nombre || "-");
+    $('#Ranking').textContent = (data.Ranking != null ? data.Ranking : "-");
 
-      // círculo
-      var varianteCirculo = {"CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1","CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2","CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3","CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4","CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"};
-      var nombresCirculo  = {"1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"};
-      var imagenesPorCirculo = {
-        "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
-        "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
-        "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
-        "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
-        "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
-      };
-      var key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
-      document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
-      var imgEl = document.getElementById("circuloImagen");
-      imgEl.src = imagenesPorCirculo[key] || "";
-      imgEl.classList.toggle("circulo-posthuman", key === "3");
+    // Círculo → nombre + imagen
+    const variantes = {
+      "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+      "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+      "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
+      "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
+      "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
+    };
+    const nombres = {"1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"};
+    const imgs = {
+      "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+      "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+      "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+      "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+      "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+    };
+    const k = variantes[(data.Círculo || "").toString().toUpperCase().trim()] || "1";
+    $('#circulo').textContent = "CÍRCULO: " + nombres[k];
+    const imgEl = $('#circuloImagen');
+    imgEl.src = imgs[k] || "";
+    imgEl.classList.toggle("circulo-posthuman", k === "3");
 
-      // valores
-      var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
-      var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
-      document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-      document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-      document.getElementById("Visitas").textContent        = fmt(c.Visitas);
+    // Valores
+    let bitsDisponibles = num(data.bits_disponibles, num(data.Bits, 0));
+    let bitsHistoricos  = num(data.bits_totales_historicos, num(data.bits_totales, num(data.Bits, 0)));
+    $('#Bits').textContent           = fmt(bitsDisponibles);
+    $('#BitsHistoricos').textContent = fmt(bitsHistoricos);
+    $('#Visitas').textContent        = fmt(data.Visitas);
 
-      // eventos.json (con urls_por_circulo opcional)
-      try {
-        var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
-        logDbg({eventos_status: evRes.status});
-        if (evRes.ok) {
-          var ev = await evRes.json();
-          logDbg({eventos_json: ev});
-          if (ev && ev.evento_activo) {
-            var urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[key]) || ev.url;
-            if (urlEvento) {
-              if (authParam) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
-              else {
-                if (ev.tipo === "redirect") { location.href = urlEvento; return; }
-                else { var a = document.getElementById("linkFeiqui"); a.href = urlEvento; a.style.display = "inline-block"; }
-              }
+    // Eventos (opcional)
+    let deferEventURL = null, deferEventType = null;
+    try {
+      const evRes = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
+      logDbg({eventos_status: evRes.status});
+      if (evRes.ok) {
+        const ev = await evRes.json();
+        logDbg({eventos_json: ev});
+        if (ev && ev.evento_activo) {
+          const urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[k]) || ev.url;
+          if (urlEvento) {
+            if (authParam) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
+            else {
+              if (ev.tipo === "redirect") { location.href = urlEvento; return; }
+              else { const a = $('#linkFeiqui'); a.href = urlEvento; a.style.display = "inline-block"; }
             }
           }
         }
-      } catch(e){ logDbg({eventos_error:String(e)}); }
-
-      // cooldown 2h
-      var lastKey   = "ultimaAcreditacion_" + id;
-      var lastUp    = localStorage.getItem(lastKey);
-      var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
-      logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
-
-      // si no corresponde acreditar, no llamamos al backend
-      if (!(authParam && (canUpdate || force))) {
-        logDbg("SKIP acreditación (cooldown o sin auth)");
-      } else {
-        // === VISITA +50 con fallbacks (legacy-first) ===
-        try {
-          // 1) LEGACY primero: ?action=visit&id=&auth=
-          var legacyURL = API_URL + "?" + new URLSearchParams({
-            action:"visit", id:c.ID, auth:authParam, _:Date.now()
-          }).toString();
-          logDbg({legacy_visit_url: legacyURL});
-          var rL  = await fetch(legacyURL, { cache:"no-store", credentials:"omit" });
-          logDbg({legacy_visit_status: rL.status});
-          var jL  = await rL.json().catch(()=>null);
-          logDbg({legacy_visit_json: jL});
-          if (!(rL.ok && jL && jL.ok)) throw new Error("legacy_visit_failed");
-
-          var nuevasVisitas = (typeof jL.visitas === "number") ? jL.visitas : num(c.Visitas,0)+1;
-          document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
-          document.getElementById("mensajeVisita").classList.add("visible");
-
-          bitsDisponibles += 50; bitsHistoricos += 50;
-          document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-          document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-          document.getElementById("mensajeBits").classList.add("visible");
-
-          // UPDATE + LOG por alias (si falla, no rompe)
-          var updBody = new URLSearchParams({
-            a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
-            Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
-          });
-          fetch(API_URL, { method:"POST", body: updBody, credentials:"omit" })
-            .then(r => logDbg({update_status:r.status}))
-            .catch(e => logDbg({update_error:String(e)}));
-
-          var logBody = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
-          fetch(API_URL, { method:"POST", body: logBody, credentials:"omit" })
-            .then(r => logDbg({log_status:r.status}))
-            .catch(e => logDbg({log_error:String(e)}));
-
-          setTimeout(function(){
-            document.getElementById("mensajeVisita").classList.remove("visible");
-            document.getElementById("mensajeBits").classList.remove("visible");
-          }, 3000);
-          localStorage.setItem(lastKey, new Date().toISOString());
-        } catch (e1) {
-          logDbg({legacy_visit_error:String(e1), fallback:"GET a=t"});
-
-          // 2) GET alias a=t (por si ya redeployaste el backend)
-          try {
-            var touchURL = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, _:Date.now() }).toString();
-            logDbg({touch_get_url: touchURL});
-            var r  = await fetch(touchURL, { cache:"no-store", credentials:"omit" });
-            logDbg({touch_get_status: r.status});
-            var j  = await r.json().catch(()=>null);
-            logDbg({touch_get_json: j});
-            if (!(r.ok && j && j.ok)) throw new Error("touch_get_failed");
-
-            var nuevasVisitas2 = (typeof j.visitas === "number") ? j.visitas : num(c.Visitas, 0) + 1;
-            document.getElementById("Visitas").textContent = fmt(nuevasVisitas2);
-            document.getElementById("mensajeVisita").classList.add("visible");
-
-            bitsDisponibles += 50; bitsHistoricos += 50;
-            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-            document.getElementById("mensajeBits").classList.add("visible");
-
-            var updBody2 = new URLSearchParams({
-              a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
-              Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
-            });
-            fetch(API_URL, { method:"POST", body: updBody2, credentials:"omit" }).then(r2 => logDbg({update_status:r2.status}));
-
-            var logBody2 = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
-            fetch(API_URL, { method:"POST", body: logBody2, credentials:"omit" }).then(r2 => logDbg({log_status:r2.status}));
-
-            localStorage.setItem(lastKey, new Date().toISOString());
-          } catch (e2) {
-            logDbg({touch_get_error:String(e2), fallback:"no-cors+beacon+img"});
-
-            // 3) Fallback final: no-cors + beacon + img (optimista)
-            try {
-              var bodyNC = new URLSearchParams({ a:"t", id:c.ID, k:authParam });
-              await fetch(API_URL, { method:"POST", mode:"no-cors", body: bodyNC, credentials:"omit" });
-              logDbg({touch_nocors_sent:true});
-            } catch(_){}
-            try {
-              if (navigator.sendBeacon) {
-                var fd = new FormData();
-                fd.append('a','t'); fd.append('id', c.ID); fd.append('k', authParam);
-                navigator.sendBeacon(API_URL, fd);
-                logDbg({touch_beacon_sent:true});
-              }
-            } catch(_){}
-            try {
-              var img = new Image();
-              img.src = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, img:1, _:Date.now() }).toString();
-              logDbg({touch_img_fired:true});
-            } catch(_){}
-
-            // UI optimista y sello local
-            var nv = num(c.Visitas, 0) + 1;
-            document.getElementById("Visitas").textContent = fmt(nv);
-            document.getElementById("mensajeVisita").classList.add("visible");
-            bitsDisponibles += 50; bitsHistoricos += 50;
-            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-            document.getElementById("mensajeBits").classList.add("visible");
-            setTimeout(function(){
-              document.getElementById("mensajeVisita").classList.remove("visible");
-              document.getElementById("mensajeBits").classList.remove("visible");
-            }, 3000);
-            localStorage.setItem(lastKey, new Date().toISOString());
-          }
-        }
       }
+    } catch(e){ logDbg({eventos_error:String(e)}); }
 
-      // redirects diferidos (si hay auth)
-      if (authParam) {
-        if (data && data.redireccion && data.url) { location.href = data.url; return; }
-        if (deferEventURL) {
-          if (deferEventType === "redirect") { location.href = deferEventURL; return; }
-          else { var a2 = document.getElementById("linkFeiqui"); a2.href = deferEventURL; a2.style.display = "inline-block"; }
-        }
-      }
+    // Cooldown local 2h (override con ?force=1)
+    const lastKey = "ultimaAcreditacion_" + id;
+    const lastUp  = localStorage.getItem(lastKey);
+    const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
+    logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
-      // link por defecto
-      if (document.getElementById("linkFeiqui").style.display !== "inline-block") {
-        document.getElementById("linkFeiqui").style.display = "inline-block";
+    // Si corresponde, hacemos la única llamada de mutación: POST action=update
+    if (authParam && (canUpdate || force)) {
+      try {
+        const body = {
+          action: "update",
+          id: id,
+          auth: authParam,
+          delta_bits: 50,
+          delta_visitas: 1
+        };
+        logDbg({update_post_body: body});
+
+        const r = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          credentials: "omit",
+          cache: "no-store"
+        });
+
+        logDbg({update_post_status: r.status});
+        const j = await r.json().catch(()=>null);
+        logDbg({update_post_json: j});
+
+        if (!j || !j.ok || !j.updated) throw new Error("update_failed");
+
+        // Reflejar nuevos valores
+        if (typeof j.visitas === "number") $('#Visitas').textContent = fmt(j.visitas);
+        const nuevosBits = (typeof j.bits === "number") ? j.bits : (bitsDisponibles + 50);
+        const nuevosHist = bitsHistoricos + 50; // históricos: suma lógica
+        $('#Bits').textContent           = fmt(nuevosBits);
+        $('#BitsHistoricos').textContent = fmt(nuevosHist);
+
+        showPulse("mensajeVisita");
+        showPulse("mensajeBits");
+        localStorage.setItem(lastKey, new Date().toISOString());
+
+        // (Opcional) Si querés log en bit_logs, descomenta:
+        /*
+        fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action:"log", id, auth:authParam, tipo:"visit", delta_bits:50 })
+        }).then(r2 => logDbg({log_status:r2.status})).catch(e2 => logDbg({log_error:String(e2)}));
+        */
+      } catch (err) {
+        logDbg({update_error:String(err)});
+        // UI no cambia si el servidor rechazó la mutación
       }
-    })
-    .catch(function(err){
-      console.error("BitCard error:", err);
-      document.getElementById("nombre").textContent = "Error cargando datos";
-    });
+    } else {
+      logDbg("SKIP acreditación (cooldown o sin auth)");
+    }
+
+    // Redirecciones diferidas (si hay auth)
+    if (authParam) {
+      if (data.redireccion && data.url) { location.href = data.url; return; }
+      if (deferEventURL) {
+        if (deferEventType === "redirect") { location.href = deferEventURL; return; }
+        else { const a2 = $('#linkFeiqui'); a2.href = deferEventURL; a2.style.display = "inline-block"; }
+      }
+    }
+
+    // Link por defecto visible si nada más aplicó
+    if ($('#linkFeiqui').style.display !== "inline-block") {
+      $('#linkFeiqui').style.display = "inline-block";
+    }
+
+  } catch (err) {
+    console.error("BitCard error:", err);
+    $('#nombre').textContent = "Error cargando datos";
+  }
 })();
 </script>
 </body>
