@@ -51,19 +51,17 @@
 
   <a id="linkFeiqui" href="https://feiqui.com/pages/info">ir a feiqui.com</a>
 
-  <!-- ÚNICO script. Va DENTRO de una función inmediatamente invocada
-       para NO dejar ninguna variable en el scope global. -->
   <script>
   (function(){
-    // --- Config en scope local (NO global) ---
+    // --- Config local ---
     var API_URL = "https://script.google.com/macros/s/AKfycbwrBdTCReKzlgBIl7gcZ1uYoo2y4MofUEWlVc_ndsg0AaWXNOUUSGH57-JyZMT8BhyTOg/exec";
-    var SECRET  = "111";
+    var SECRET  = "111"; // debe coincidir con BC_SECRET en el GAS
 
-    // Guard idempotente: si por algún motivo se incluye este archivo 2 veces, no vuelve a correr.
+    // Guard idempotente
     if (window.__BITCARD_RUNNING__) return;
     window.__BITCARD_RUNNING__ = true;
 
-    // --- Utils (scope local) ---
+    // --- Utils ---
     var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
@@ -78,12 +76,30 @@
     }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // --- Fetch con cache-buster ---
+    // Catálogo círculos
+    var varianteCirculo = {
+      "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
+      "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
+      "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
+      "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
+      "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
+    };
+    var nombresCirculo = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
+    var imagenesPorCirculo = {
+      "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
+      "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
+      "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
+      "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
+      "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
+    };
+
+    // --- Fetch principal ---
     fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
       .then(function(res){ return res.json(); })
       .then(function(data){
+        console.log("BitCard GAS version:", data && data.version);
+
         if (data && data.redireccion && data.url) {
-          // mismo comportamiento original: redirige y corta
           location.href = data.url;
           return;
         }
@@ -96,26 +112,13 @@
 
         // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
-        document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
 
-        // Círculos 1–5
-        var varianteCirculo = {
-          "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
-          "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
-          "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
-          "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
-          "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
-        };
-        var nombresCirculo = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
-        var imagenesPorCirculo = {
-          "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
-          "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
-          "3":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga3.svg?v=1751840844",
-          "4":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga4.svg?v=1751840844",
-          "5":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga5.svg?v=1751840844"
-        };
+        // Ranking (mostrar tal cual venga de la API; si está vacío, "-")
+        document.getElementById("Ranking").textContent = (c.Ranking !== undefined && c.Ranking !== null && c.Ranking !== "" ? c.Ranking : "-");
 
-        var key = varianteCirculo[(c.Círculo || "").toString().toUpperCase().trim()] || "1";
+        // Círculo (si Base_Convertida no lo tiene, el GAS hace fallback a feiqui_clientes)
+        var circleRaw = (c.Círculo || "").toString().toUpperCase().trim();
+        var key = varianteCirculo[circleRaw] || "1";
         document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
         var imgEl = document.getElementById("circuloImagen");
         imgEl.src = imagenesPorCirculo[key] || "";
@@ -124,10 +127,11 @@
         // Valores
         var bitsDisponibles = num(c.bits_disponibles, num(c.Bits, 0));
         var bitsHistoricos  = num(c.bits_totales_historicos, num(c.bits_totales, num(c.Bits, 0)));
+        var visitas         = num(c.Visitas, 0);
 
         document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-        document.getElementById("Visitas").textContent        = fmt(c.Visitas);
+        document.getElementById("Visitas").textContent        = fmt(visitas);
 
         // Acreditación +50 (auth=111) cada 2h
         var lastKey   = "ultimaAcreditacion_" + id;
@@ -135,31 +139,37 @@
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
 
         if (canUpdate && authParam === SECRET) {
-          var nuevasVisitas = num(c.Visitas, 0) + 1;
+          var nuevasVisitas = visitas + 1;
           bitsDisponibles  += 50;
           bitsHistoricos   += 50;
 
-          // UI
+          // UI inmediata
           document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
           document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
 
-          // UPDATE
+          // 1) VISIT (sumar visita) — requiere auth correcto
+          fetch(API_URL + "?" + new URLSearchParams({
+            action: "visit",
+            id: c.ID,
+            auth: SECRET
+          }), { cache:"no-store" }).catch(function(){});
+
+          // 2) UPDATE (solo campos permitidos; NO enviamos Círculo ni Visitas)
           var upd = new URLSearchParams({
-            action:"update",
-            ID:c.ID, Nombre:c.Nombre || "",
-            Bits:bitsDisponibles,
-            Visitas:nuevasVisitas,
-            Ranking:(c.Ranking != null ? c.Ranking : ""),
-            Círculo:(c.Círculo != null ? c.Círculo : "")
+            action: "update",
+            ID: c.ID,
+            Nombre: c.Nombre || "",
+            Bits: bitsDisponibles,
+            Ranking: (c.Ranking != null ? c.Ranking : "")
           });
           fetch(API_URL + "?" + upd).catch(function(){});
 
-          // LOG +50
+          // 3) LOG +50
           var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
           fetch(API_URL + "?" + logp).catch(function(){});
 
-          // feedback
+          // Feedback visual
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
           setTimeout(function(){
