@@ -166,28 +166,36 @@
     const canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
     logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
-    // Si corresponde, hacemos la única llamada de mutación: POST action=update
+    // Si corresponde, hacemos la única llamada de mutación: POST action=update (form-encoded, sin headers)
     if (authParam && (canUpdate || force)) {
       try {
-        const body = {
+        const form = new URLSearchParams({
           action: "update",
           id: id,
           auth: authParam,
           delta_bits: 50,
           delta_visitas: 1
-        };
-        logDbg({update_post_body: body});
+        });
+        logDbg({update_post_body: Object.fromEntries(form)});
 
         const r = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          // ¡sin Content-Type para evitar preflight!
+          body: form,
           credentials: "omit",
-          cache: "no-store"
+          cache: "no-store",
+          mode: "cors",
+          keepalive: false
         });
 
         logDbg({update_post_status: r.status});
-        const j = await r.json().catch(()=>null);
+        let j = null;
+        try {
+          j = await r.json();
+        } catch {
+          const t = await r.text().catch(()=> "");
+          logDbg({update_post_text: t});
+        }
         logDbg({update_post_json: j});
 
         if (!j || !j.ok || !j.updated) throw new Error("update_failed");
@@ -203,13 +211,16 @@
         showPulse("mensajeBits");
         localStorage.setItem(lastKey, new Date().toISOString());
 
-        // (Opcional) Si querés log en bit_logs, descomenta:
+        // (Opcional) log en bit_logs:
         /*
-        fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action:"log", id, auth:authParam, tipo:"visit", delta_bits:50 })
-        }).then(r2 => logDbg({log_status:r2.status})).catch(e2 => logDbg({log_error:String(e2)}));
+        const logForm = new URLSearchParams({
+          action: "log",
+          id: id,
+          auth: authParam,
+          tipo: "visit",
+          delta_bits: 50
+        });
+        fetch(API_URL, { method:"POST", body: logForm }).then(r2 => logDbg({log_status:r2.status})).catch(e2 => logDbg({log_error:String(e2)}));
         */
       } catch (err) {
         logDbg({update_error:String(err)});
