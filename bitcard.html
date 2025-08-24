@@ -6,22 +6,19 @@
   <title>BitCard</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <style>
-    body { background-color: white; color: #B6B6B6; font-family: monospace;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      height:100vh; margin:0; text-align:center; }
-    #logo { width: 80%; max-width: 400px; height: auto; margin-top: -20px; }
-    img { margin: 0; padding: 0; border: none; }
-    .count { font-size: 2em; margin: 5px 0; }
-    h1 { margin: 0; }
-    #info-principal { margin-top: 10px; margin-bottom: 20px; }
+    body { background:#fff; color:#B6B6B6; font-family:monospace; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center; }
+    #logo { width:80%; max-width:400px; height:auto; margin-top:-20px; }
+    img { margin:0; padding:0; border:none; }
+    .count { font-size:2em; margin:5px 0; }
+    h1 { margin:0; }
+    #info-principal { margin-top:10px; margin-bottom:20px; }
     #circuloImagen { width:auto; height:auto; max-height:200px; max-width:200px; margin:10px 0 20px; }
     .mensaje { color:#B6B6B6; font-size:14px; opacity:0; transition:opacity .5s; }
     .visible { opacity:1; }
     @keyframes glowPulse { 0%,100%{filter:drop-shadow(0 0 15px #e0e0e0)} 50%{filter:drop-shadow(0 0 25px #ffffff)} }
-    .circulo-posthuman { animation: glowPulse 2.3s infinite ease-in-out; }
+    .circulo-posthuman { animation:glowPulse 2.3s infinite ease-in-out; }
     #linkFeiqui { display:none; margin-top:10px; font-size:16px; color:#b6b6b6; text-decoration:none; }
-    #debug { position:fixed; bottom:10px; left:10px; right:10px; max-height:40vh; overflow:auto;
-      background:rgba(0,0,0,.7); color:#0f0; font:12px/1.3 monospace; padding:8px; border-radius:8px; display:none; text-align:left; }
+    #debug { position:fixed; bottom:10px; left:10px; right:10px; max-height:40vh; overflow:auto; background:rgba(0,0,0,.7); color:#0f0; font:12px/1.3 monospace; padding:8px; border-radius:8px; display:none; text-align:left; }
     #debug h3 { margin:0 0 6px 0; color:#fff; }
     #debug pre { white-space:pre-wrap; word-break:break-word; }
   </style>
@@ -55,13 +52,14 @@
 
   <script>
   (function(){
-    var API_URL = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec"; // <-- MUY IMPORTANTE: pega aquí la URL del último deployment
-    var SECRET  = "111";
+    // ====== CONFIG ======
+    var qs       = new URLSearchParams(location.search);
+    var API_URL  = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec"; // TU /exec
+    var SECRET   = "111";
 
     if (window.__BITCARD_RUNNING__) return;
     window.__BITCARD_RUNNING__ = true;
 
-    var qs       = new URLSearchParams(location.search);
     var rawId    = qs.get("id");
     var authParam= qs.get("auth");
     var force    = (qs.get("force") === "1");
@@ -79,20 +77,22 @@
       console.log(obj);
     }
 
-    if (!id) {
-      document.getElementById("nombre").textContent = "Falta ?id";
-      return;
-    }
+    if (!id) { document.getElementById("nombre").textContent = "Falta ?id"; return; }
     document.getElementById("clienteId").textContent = "ID: " + id;
 
-    // PING rápido: confirma permisos del WebApp (debe dar 200/ok:true)
-    fetch(API_URL + "?action=ping&_=" + Date.now())
+    // PING
+    var pingURL = API_URL + "?action=ping&_=" + Date.now();
+    logDbg({API_URL, ping_url: pingURL});
+    fetch(pingURL)
       .then(r => { logDbg({ping_status:r.status}); return r.json().catch(()=>null); })
       .then(j => logDbg({ping_body:j}))
       .catch(err => logDbg({ping_error:String(err)}));
 
-    // --- Fetch de perfil ---
-    fetch(API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache:"no-store" })
+    // PERFIL
+    var perfilURL = API_URL + "?id=" + encodeURIComponent(id) + "&_=" + Date.now();
+    logDbg({perfil_url: perfilURL});
+
+    fetch(perfilURL, { cache:"no-store" })
       .then(function(res){ logDbg({perfil_status:res.status}); return res.json(); })
       .then(async function(data){
         logDbg({perfil_json:data});
@@ -101,29 +101,18 @@
 
         // Redirect por hoja (si NO hay auth)
         if (authParam !== SECRET && data && data.redireccion && data.url) {
-          location.href = data.url;
-          return;
+          location.href = data.url; return;
         }
 
         var c = Array.isArray(data) ? data[0] : data;
-        if (!c || !c.ID) {
-          document.getElementById("nombre").textContent = "NO ENCONTRADO";
-          return;
-        }
+        if (!c || !c.ID) { document.getElementById("nombre").textContent = "NO ENCONTRADO"; return; }
 
-        // Identidad
         document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
         document.getElementById("Ranking").textContent = (c.Ranking != null ? c.Ranking : "-");
 
-        // Círculos
-        var varianteCirculo = {
-          "CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1",
-          "CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2",
-          "CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3",
-          "CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4",
-          "CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"
-        };
-        var nombresCirculo = { "1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5" };
+        // Círculo
+        var varianteCirculo = {"CÍRCULO 1":"1","PRIMER CÍRCULO":"1","1":"1","CÍRCULO 2":"2","SEGUNDO CÍRCULO":"2","2":"2","CÍRCULO 3":"3","TERCER CÍRCULO":"3","3":"3","CÍRCULO 4":"4","CUARTO CÍRCULO":"4","4":"4","CÍRCULO 5":"5","QUINTO CÍRCULO":"5","5":"5"};
+        var nombresCirculo  = {"1":"CÍRCULO 1","2":"CÍRCULO 2","3":"CÍRCULO 3","4":"CÍRCULO 4","5":"CÍRCULO 5"};
         var imagenesPorCirculo = {
           "1":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga1.svg?v=1751840844",
           "2":"https://cdn.shopify.com/s/files/1/0550/5001/0810/files/descarga2.svg?v=1751840844",
@@ -144,7 +133,7 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-        // Eventos por círculo
+        // Eventos (eventos.json)
         try {
           var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
           logDbg({eventos_status: evRes.status});
@@ -154,23 +143,17 @@
             if (ev && ev.evento_activo) {
               var urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[key]) || ev.url;
               if (urlEvento) {
-                if (authParam === SECRET) {
-                  deferEventURL  = urlEvento;
-                  deferEventType = ev.tipo || "link";
-                } else {
-                  if (ev.tipo === "redirect") {
-                    location.href = urlEvento; return;
-                  } else {
-                    var a = document.getElementById("linkFeiqui");
-                    a.href = urlEvento; a.style.display = "inline-block";
-                  }
+                if (authParam === SECRET) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
+                else {
+                  if (ev.tipo === "redirect") { location.href = urlEvento; return; }
+                  else { var a = document.getElementById("linkFeiqui"); a.href = urlEvento; a.style.display = "inline-block"; }
                 }
               }
             }
           }
         } catch(e){ logDbg({eventos_error:String(e)}); }
 
-        // Acreditación (2h): visita + +50
+        // Acreditación (2h): visita + +50 (solo con auth)
         var lastKey   = "ultimaAcreditacion_" + id;
         var lastUp    = localStorage.getItem(lastKey);
         var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
@@ -178,7 +161,7 @@
 
         if (authParam === SECRET && (canUpdate || force)) {
           try {
-            // VISIT
+            // VISIT (server)
             var visitParams = new URLSearchParams({ action:"visit", id:c.ID, auth:authParam, ua:navigator.userAgent });
             var visitURL = API_URL + "?" + visitParams.toString();
             logDbg({visit_url: visitURL});
@@ -192,13 +175,12 @@
             document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
             document.getElementById("mensajeVisita").classList.add("visible");
 
-            // +50
+            // +50 (local + update)
             bitsDisponibles += 50; bitsHistoricos += 50;
             document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
             document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
             document.getElementById("mensajeBits").classList.add("visible");
 
-            // UPDATE sin Visitas
             var upd = new URLSearchParams({
               action: "update",
               ID: c.ID,
@@ -232,16 +214,12 @@
         if (authParam === SECRET) {
           if (data && data.redireccion && data.url) { location.href = data.url; return; }
           if (deferEventURL) {
-            if (deferEventType === "redirect") {
-              location.href = deferEventURL; return;
-            } else {
-              var a2 = document.getElementById("linkFeiqui");
-              a2.href = deferEventURL; a2.style.display = "inline-block";
-            }
+            if (deferEventType === "redirect") { location.href = deferEventURL; return; }
+            else { var a2 = document.getElementById("linkFeiqui"); a2.href = deferEventURL; a2.style.display = "inline-block"; }
           }
         }
 
-        // link por defecto si no hubo otro
+        // link por defecto
         if (document.getElementById("linkFeiqui").style.display !== "inline-block") {
           document.getElementById("linkFeiqui").style.display = "inline-block";
         }
