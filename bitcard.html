@@ -50,13 +50,12 @@
   // === CONFIG ===
   var qs       = new URLSearchParams(location.search);
   var API_URL  = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec";
-  var SECRET   = "111";
 
   if (window.__BITCARD_RUNNING__) return;
   window.__BITCARD_RUNNING__ = true;
 
   var rawId    = qs.get("id");
-  var authParam= qs.get("auth");  // seguimos leyendo 'auth' desde la URL
+  var authParam= qs.get("auth");  // el servidor valida; aquí sólo chequeamos presencia
   var force    = (qs.get("force") === "1");
   var debugOn  = (qs.get("debug") === "1");
   var id       = rawId ? rawId.toString().padStart(3,"0") : "";
@@ -94,7 +93,7 @@
       var deferEventURL  = null, deferEventType = null;
 
       // redirect por hoja si NO hay auth
-      if (authParam !== SECRET && data && data.redireccion && data.url) {
+      if (!authParam && data && data.redireccion && data.url) {
         location.href = data.url; return;
       }
 
@@ -128,7 +127,7 @@
       document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
       document.getElementById("Visitas").textContent        = fmt(c.Visitas);
 
-      // eventos.json (opcional; admite urls_por_circulo)
+      // eventos.json (con urls_por_circulo opcional)
       try {
         var evRes  = await fetch("data/eventos.json?nocache=" + Date.now(), { cache:"no-store" });
         logDbg({eventos_status: evRes.status});
@@ -138,7 +137,7 @@
           if (ev && ev.evento_activo) {
             var urlEvento = (ev.urls_por_circulo && ev.urls_por_circulo[key]) || ev.url;
             if (urlEvento) {
-              if (authParam === SECRET) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
+              if (authParam) { deferEventURL = urlEvento; deferEventType = ev.tipo || "link"; }
               else {
                 if (ev.tipo === "redirect") { location.href = urlEvento; return; }
                 else { var a = document.getElementById("linkFeiqui"); a.href = urlEvento; a.style.display = "inline-block"; }
@@ -152,179 +151,127 @@
       var lastKey   = "ultimaAcreditacion_" + id;
       var lastUp    = localStorage.getItem(lastKey);
       var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
-      logDbg({canUpdate, lastUp, force});
+      logDbg({canUpdate, lastUp, force, auth_present: !!authParam});
 
       // si no corresponde acreditar, no llamamos al backend
-      if (!(authParam === SECRET && (canUpdate || force))) {
+      if (!(authParam && (canUpdate || force))) {
         logDbg("SKIP acreditación (cooldown o sin auth)");
       } else {
-        // === VISITA +50: POST (alias a,k) ===
+        // === VISITA +50 con fallbacks (legacy-first) ===
         try {
-          // 1) touch (POST) con alias
-          var touchBody = new URLSearchParams({ a:"t", id:c.ID, k:authParam });
-          logDbg({touch_post:true});
-          var touchRes  = await fetch(API_URL, { method:"POST", body: touchBody, cache:"no-store" });
-          logDbg({touch_status: touchRes.status});
-          var touchJson = await touchRes.json().catch(()=>null);
-          logDbg({touch_json: touchJson});
-          if (!touchRes.ok || !touchJson || !touchJson.ok) throw new Error("touch_failed");
+          // 1) LEGACY primero: ?action=visit&id=&auth=
+          var legacyURL = API_URL + "?" + new URLSearchParams({
+            action:"visit", id:c.ID, auth:authParam, _:Date.now()
+          }).toString();
+          logDbg({legacy_visit_url: legacyURL});
+          var rL  = await fetch(legacyURL, { cache:"no-store", credentials:"omit" });
+          logDbg({legacy_visit_status: rL.status});
+          var jL  = await rL.json().catch(()=>null);
+          logDbg({legacy_visit_json: jL});
+          if (!(rL.ok && jL && jL.ok)) throw new Error("legacy_visit_failed");
 
-          var nuevasVisitas = (typeof touchJson.visitas === "number") ? touchJson.visitas : num(c.Visitas, 0) + 1;
+          var nuevasVisitas = (typeof jL.visitas === "number") ? jL.visitas : num(c.Visitas,0)+1;
           document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
           document.getElementById("mensajeVisita").classList.add("visible");
 
-          // 2) +50 local
           bitsDisponibles += 50; bitsHistoricos += 50;
           document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
           document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
           document.getElementById("mensajeBits").classList.add("visible");
 
-          // 3) update (POST, alias a=u)
+          // UPDATE + LOG por alias (si falla, no rompe)
           var updBody = new URLSearchParams({
             a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
             Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
           });
-          fetch(API_URL, { method:"POST", body: updBody })
+          fetch(API_URL, { method:"POST", body: updBody, credentials:"omit" })
             .then(r => logDbg({update_status:r.status}))
             .catch(e => logDbg({update_error:String(e)}));
 
-          // 4) log (POST, alias a=l)
           var logBody = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
-          fetch(API_URL, { method:"POST", body: logBody })
+          fetch(API_URL, { method:"POST", body: logBody, credentials:"omit" })
             .then(r => logDbg({log_status:r.status}))
             .catch(e => logDbg({log_error:String(e)}));
 
-          // feedback + sello
           setTimeout(function(){
             document.getElementById("mensajeVisita").classList.remove("visible");
             document.getElementById("mensajeBits").classList.remove("visible");
           }, 3000);
           localStorage.setItem(lastKey, new Date().toISOString());
+        } catch (e1) {
+          logDbg({legacy_visit_error:String(e1), fallback:"GET a=t"});
 
-        } catch (e) {
-  // 2) Fallback GET alias (a=t&k=...)
-  try {
-    logDbg({touch_error:String(e), fallback:"GET touch"});
-    var touchURL = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, _:Date.now() }).toString();
-    logDbg({touch_get_url: touchURL});
-    var r  = await fetch(touchURL, { cache:"no-store", credentials:"omit" });
-    logDbg({touch_get_status: r.status});
-    var j  = await r.json().catch(()=>null);
-    logDbg({touch_get_json: j});
+          // 2) GET alias a=t (por si ya redeployaste el backend)
+          try {
+            var touchURL = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, _:Date.now() }).toString();
+            logDbg({touch_get_url: touchURL});
+            var r  = await fetch(touchURL, { cache:"no-store", credentials:"omit" });
+            logDbg({touch_get_status: r.status});
+            var j  = await r.json().catch(()=>null);
+            logDbg({touch_get_json: j});
+            if (!(r.ok && j && j.ok)) throw new Error("touch_get_failed");
 
-    // ¿Devolvió perfil en lugar de {ok:true}? (backend sin alias)
-    if (r.ok && j && j.ok === undefined && j.Visitas !== undefined) {
-      logDbg({touch_get_profile_shape:true, fallback:"LEGACY action=visit"});
+            var nuevasVisitas2 = (typeof j.visitas === "number") ? j.visitas : num(c.Visitas, 0) + 1;
+            document.getElementById("Visitas").textContent = fmt(nuevasVisitas2);
+            document.getElementById("mensajeVisita").classList.add("visible");
 
-      // 2.b) Fallback LEGACY: ?action=visit&id=&auth=
-      var legacyURL = API_URL + "?" + new URLSearchParams({
-        action:"visit", id:c.ID, auth:authParam, _:Date.now()
-      }).toString();
-      logDbg({legacy_visit_url: legacyURL});
-      var r2  = await fetch(legacyURL, { cache:"no-store", credentials:"omit" });
-      logDbg({legacy_visit_status: r2.status});
-      var j2  = await r2.json().catch(()=>null);
-      logDbg({legacy_visit_json: j2});
-      if (!r2.ok || !j2 || !j2.ok) throw new Error("legacy_visit_failed");
+            bitsDisponibles += 50; bitsHistoricos += 50;
+            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+            document.getElementById("mensajeBits").classList.add("visible");
 
-      var nuevasVisitasL = (typeof j2.visitas === "number") ? j2.visitas : num(c.Visitas,0)+1;
-      document.getElementById("Visitas").textContent = fmt(nuevasVisitasL);
-      document.getElementById("mensajeVisita").classList.add("visible");
+            var updBody2 = new URLSearchParams({
+              a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
+              Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
+            });
+            fetch(API_URL, { method:"POST", body: updBody2, credentials:"omit" }).then(r2 => logDbg({update_status:r2.status}));
 
-      bitsDisponibles += 50; bitsHistoricos += 50;
-      document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-      document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-      document.getElementById("mensajeBits").classList.add("visible");
+            var logBody2 = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
+            fetch(API_URL, { method:"POST", body: logBody2, credentials:"omit" }).then(r2 => logDbg({log_status:r2.status}));
 
-      // update/log por POST alias (si el backend nuevo ya está, suma; si no, lo ignora sin romper)
-      var updBodyL = new URLSearchParams({
-        a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
-        Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
-      });
-      fetch(API_URL, { method:"POST", body: updBodyL, credentials:"omit" })
-        .then(r3 => logDbg({update_status_legacy:r3.status}))
-        .catch(e3 => logDbg({update_error_legacy:String(e3)}));
+            localStorage.setItem(lastKey, new Date().toISOString());
+          } catch (e2) {
+            logDbg({touch_get_error:String(e2), fallback:"no-cors+beacon+img"});
 
-      var logBodyL = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
-      fetch(API_URL, { method:"POST", body: logBodyL, credentials:"omit" })
-        .then(r4 => logDbg({log_status_legacy:r4.status}))
-        .catch(e4 => logDbg({log_error_legacy:String(e4)}));
+            // 3) Fallback final: no-cors + beacon + img (optimista)
+            try {
+              var bodyNC = new URLSearchParams({ a:"t", id:c.ID, k:authParam });
+              await fetch(API_URL, { method:"POST", mode:"no-cors", body: bodyNC, credentials:"omit" });
+              logDbg({touch_nocors_sent:true});
+            } catch(_){}
+            try {
+              if (navigator.sendBeacon) {
+                var fd = new FormData();
+                fd.append('a','t'); fd.append('id', c.ID); fd.append('k', authParam);
+                navigator.sendBeacon(API_URL, fd);
+                logDbg({touch_beacon_sent:true});
+              }
+            } catch(_){}
+            try {
+              var img = new Image();
+              img.src = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, img:1, _:Date.now() }).toString();
+              logDbg({touch_img_fired:true});
+            } catch(_){}
 
-      setTimeout(function(){
-        document.getElementById("mensajeVisita").classList.remove("visible");
-        document.getElementById("mensajeBits").classList.remove("visible");
-      }, 3000);
-      localStorage.setItem("ultimaAcreditacion_"+id, new Date().toISOString());
-      return; // listo ✅
-    }
-
-    // Si NO es el caso “perfil”, exigimos ok:true como siempre
-    if (!r.ok || !j || !j.ok) throw new Error("touch_get_failed");
-
-    // --- Camino OK del GET alias a=t ---
-    var nuevasVisitas = (typeof j.visitas === "number") ? j.visitas : num(c.Visitas, 0) + 1;
-    document.getElementById("Visitas").textContent = fmt(nuevasVisitas);
-    document.getElementById("mensajeVisita").classList.add("visible");
-
-    bitsDisponibles += 50; bitsHistoricos += 50;
-    document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-    document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-    document.getElementById("mensajeBits").classList.add("visible");
-
-    var updBody2 = new URLSearchParams({
-      a:"u", ID:c.ID, Nombre:c.Nombre||"", Bits:bitsDisponibles,
-      Ranking:(c.Ranking!=null?c.Ranking:""), Círculo:(c.Círculo!=null?c.Círculo:"")
-    });
-    fetch(API_URL, { method:"POST", body: updBody2, credentials:"omit" }).then(r2 => logDbg({update_status:r2.status}));
-
-    var logBody2 = new URLSearchParams({ a:"l", ID:c.ID, Nombre:c.Nombre||"", Incremento:50 });
-    fetch(API_URL, { method:"POST", body: logBody2, credentials:"omit" }).then(r2 => logDbg({log_status:r2.status}));
-
-    localStorage.setItem("ultimaAcreditacion_"+id, new Date().toISOString());
-
-  } catch (e2) {
-    // 3) Fallback final: no-cors + beacon + img (optimista)
-    logDbg({acreditacion_error:String(e2), fallback:"no-cors+beacon+img"});
-    try {
-      var bodyNC = new URLSearchParams({ a:"t", id:c.ID, k:authParam });
-      await fetch(API_URL, { method:"POST", mode:"no-cors", body: bodyNC, credentials:"omit" });
-      logDbg({touch_nocors_sent:true});
-    } catch(_){}
-
-    try {
-      if (navigator.sendBeacon) {
-        var fd = new FormData();
-        fd.append('a','t'); fd.append('id', c.ID); fd.append('k', authParam);
-        navigator.sendBeacon(API_URL, fd);
-        logDbg({touch_beacon_sent:true});
+            // UI optimista y sello local
+            var nv = num(c.Visitas, 0) + 1;
+            document.getElementById("Visitas").textContent = fmt(nv);
+            document.getElementById("mensajeVisita").classList.add("visible");
+            bitsDisponibles += 50; bitsHistoricos += 50;
+            document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
+            document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+            document.getElementById("mensajeBits").classList.add("visible");
+            setTimeout(function(){
+              document.getElementById("mensajeVisita").classList.remove("visible");
+              document.getElementById("mensajeBits").classList.remove("visible");
+            }, 3000);
+            localStorage.setItem(lastKey, new Date().toISOString());
+          }
+        }
       }
-    } catch(_){}
 
-    try {
-      var img = new Image();
-      img.src = API_URL + "?" + new URLSearchParams({ a:"t", id:c.ID, k:authParam, img:1, _:Date.now() }).toString();
-      logDbg({touch_img_fired:true});
-    } catch(_){}
-
-    // UI optimista y sello local
-    var nv = num(c.Visitas, 0) + 1;
-    document.getElementById("Visitas").textContent = fmt(nv);
-    document.getElementById("mensajeVisita").classList.add("visible");
-    bitsDisponibles += 50; bitsHistoricos += 50;
-    document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-    document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
-    document.getElementById("mensajeBits").classList.add("visible");
-    setTimeout(function(){
-      document.getElementById("mensajeVisita").classList.remove("visible");
-      document.getElementById("mensajeBits").classList.remove("visible");
-    }, 3000);
-    localStorage.setItem("ultimaAcreditacion_"+id, new Date().toISOString());
-  }
-}
-
-
-      // redirects diferidos si hay auth
-      if (authParam === SECRET) {
+      // redirects diferidos (si hay auth)
+      if (authParam) {
         if (data && data.redireccion && data.url) { location.href = data.url; return; }
         if (deferEventURL) {
           if (deferEventType === "redirect") { location.href = deferEventURL; return; }
