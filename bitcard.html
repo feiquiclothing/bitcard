@@ -133,41 +133,64 @@
         document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
         document.getElementById("Visitas").textContent        = fmt(visitas);
 
-        // Acreditación +50 (auth=111) cada 2h
-        var lastKey   = "ultimaAcreditacion_" + id;
-        var lastUp    = localStorage.getItem(lastKey);
-        var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
+        // Acreditación +50 (auth=SECRET) cada 2h
+var lastKey   = "ultimaAcreditacion_" + id;
+var lastUp    = localStorage.getItem(lastKey);
+var canUpdate = !lastUp || (Date.now() - Date.parse(lastUp)) > 2*60*60*1000;
 
-        if (canUpdate && authParam === SECRET) {
-          var nuevasVisitas = visitas + 1;
-          bitsDisponibles  += 50;
-          bitsHistoricos   += 50;
+// ⚠️ Si querés que funcione sin poner ?auth=... en la URL,
+// cambiá esta línea a: if (canUpdate) { ... }
+if (canUpdate && authParam === SECRET) {
+  var nuevasVisitas = visitas + 1;
+  var nuevosBits    = bitsDisponibles + 50;
+  var nuevosHist    = bitsHistoricos + 50;
 
-          // UI inmediata
-          document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
-          document.getElementById("Bits").textContent           = fmt(bitsDisponibles);
-          document.getElementById("BitsHistoricos").textContent = fmt(bitsHistoricos);
+  // UI inmediata (optimista)
+  document.getElementById("Visitas").textContent        = fmt(nuevasVisitas);
+  document.getElementById("Bits").textContent           = fmt(nuevosBits);
+  document.getElementById("BitsHistoricos").textContent = fmt(nuevosHist);
 
-          // 1) VISIT (sumar visita) — requiere auth correcto
-          fetch(API_URL + "?" + new URLSearchParams({
-            action: "visit",
-            id: c.ID,
-            auth: SECRET
-          }), { cache:"no-store" }).catch(function(){});
+  // 1) VISIT (sumar visita) — requiere auth correcto
+  fetch(API_URL + "?" + new URLSearchParams({
+    action: "visit",
+    id: c.ID,
+    auth: SECRET
+  }), { cache:"no-store" })
+  .then(r => r.json()).then(j => {
+    console.log("[visit] resp:", j);
+  }).catch(()=>{});
 
-          // 2) UPDATE (solo campos permitidos; NO enviamos Círculo ni Visitas)
-          var upd = new URLSearchParams({
-            action: "update",
-            ID: c.ID,
-            Nombre: c.Nombre || "",
-            Bits: bitsDisponibles,
-            Ranking: (c.Ranking != null ? c.Ranking : "")
-          });
-          fetch(API_URL + "?" + upd).catch(function(){});
+  // 2) UPDATE (solo campos permitidos; NO enviamos Círculo ni Visitas)
+  var upd = new URLSearchParams({
+    action: "update",
+    ID: c.ID,
+    Nombre: c.Nombre || "",
+    Bits: nuevosBits,
+    Ranking: (c.Ranking != null ? c.Ranking : ""),
+    auth: SECRET // <-- importante si en GAS pedís auth para update
+  });
+  fetch(API_URL + "?" + upd, { cache:"no-store" })
+  .then(r => r.json()).then(j => {
+    console.log("[update] resp:", j);
+  }).catch(()=>{});
 
-          // 3) LOG +50
-          var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
-          fetch(API_URL + "?" + logp).catch(function(){});
+  // 3) LOG +50 (no requiere auth)
+  var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
+  fetch(API_URL + "?" + logp, { cache:"no-store" })
+  .then(r => r.json()).then(j => {
+    console.log("[log] resp:", j);
+  }).catch(()=>{});
+
+  // Feedback visual
+  document.getElementById("mensajeVisita").classList.add("visible");
+  document.getElementById("mensajeBits").classList.add("visible");
+  setTimeout(function(){
+    document.getElementById("mensajeVisita").classList.remove("visible");
+    document.getElementById("mensajeBits").classList.remove("visible");
+  }, 3000);
+
+  localStorage.setItem(lastKey, new Date().toISOString());
+}
 
           // Feedback visual
           document.getElementById("mensajeVisita").classList.add("visible");
