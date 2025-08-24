@@ -24,13 +24,14 @@
 <script>
 (async () => {
   const qs = new URLSearchParams(location.search);
-  const API = "https://script.google.com/macros/s/AKfycbynqoZHnauSW8BZL9qbygNhx91Ja1-aLNF14X92wa0udO4tGugE0kFyVBO1JNbczaAmYw/exec"; // <- ACTUALIZA si redeployás
+  // ====== USA TU NUEVO ENDPOINT ======
+  const API = "https://script.google.com/macros/s/AKfycbynqoZHnauSW8BZL9qbygNhx91Ja1-aLNF14X92wa0udO4tGugE0kFyVBO1JNbczaAmYw/exec";
   const id  = (qs.get('id')||'').toString().padStart(3,'0');
   const k   = qs.get('auth') || '';
   const force = qs.get('force') === '1';
   const debug = qs.get('debug') === '1';
   const $ = s => document.querySelector(s);
-  const log = x => { if(!debug) return; $('#debug').style.display='block'; $('#dbg').textContent += (typeof x==='string'?x:JSON.stringify(x,null,2))+"\n"; console.log(x); };
+  const log = x => { if(!debug) return; $('#debug').style.display='block'; $('#dbg').textContent += (typeof x==='string'?x:JSON.stringify(x,null,2))+"\n"; };
   const fmt = n => Number(n||0).toLocaleString('es-UY');
 
   if (!id || id==='000') { $('#id').textContent='Falta ?id'; return; }
@@ -47,26 +48,25 @@
     const url = API + "?" + new URLSearchParams({ a:'apply', id, k, _:Date.now() });
     log({apply_url:url});
     const r = await fetch(url, {cache:'no-store'});
-    const j = await r.json(); log({apply_json:j});
+    const j = await r.json().catch(()=>null); log({apply_json:j});
     return j;
   }
   async function visit() {
     const url = API + "?" + new URLSearchParams({ a:'v', id, k, _:Date.now() });
     log({visit_url:url});
     const r = await fetch(url, {cache:'no-store'});
-    const j = await r.json(); log({visit_json:j});
+    const j = await r.json().catch(()=>null); log({visit_json:j});
     return j;
   }
   async function setBitsAbs(nuevo) {
     const url = API + "?" + new URLSearchParams({ a:'u', ID:id, Bits:String(nuevo), k, _:Date.now() });
     log({absbits_url:url});
     const r = await fetch(url, {cache:'no-store'});
-    const j = await r.json(); log({absbits_json:j});
+    const j = await r.json().catch(()=>null); log({absbits_json:j});
     return j;
   }
   function flash(id){ const el=$(id); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
 
-  // Perfil inicial
   const p0 = await perfil();
   if (!p0 || !p0.ok) { $('#id').textContent='ID no encontrado'; return; }
   let bits = Number(p0.bits_disponibles ?? p0.Bits ?? 0);
@@ -74,36 +74,31 @@
   $('#bits').textContent = fmt(bits);
   $('#visitas').textContent = fmt(vis);
 
-  // Cooldown 2h
-  const kLC = 'bc_last_'+id;
-  const last = localStorage.getItem(kLC);
+  // Cooldown 2h (forzado con ?force=1)
+  const key = 'bc_last_'+id;
+  const last = localStorage.getItem(key);
   const can = !last || (Date.now()-Date.parse(last)) > 2*60*60*1000;
 
   if (k && (can || force)) {
-    // 1) apply
-    try {
-      const a = await apply();
-      if (a && a.ok && a.updated) {
-        if (typeof a.bits === 'number') bits = a.bits;
-        if (typeof a.visitas === 'number') vis = a.visitas;
-        $('#bits').textContent = fmt(bits);
-        $('#visitas').textContent = fmt(vis);
-        flash('#mbits'); flash('#mvis');
-        localStorage.setItem(kLC, new Date().toISOString());
-      } else {
-        // 2) fallback: visita + set bits absolutos
-        await visit();
-        await setBitsAbs(bits + 50);
-        const p1 = await perfil();
-        bits = Number(p1.bits_disponibles ?? p1.Bits ?? (bits+50));
-        vis  = Number(p1.Visitas ?? (vis+1));
-        $('#bits').textContent = fmt(bits);
-        $('#visitas').textContent = fmt(vis);
-        flash('#mbits'); flash('#mvis');
-        localStorage.setItem(kLC, new Date().toISOString());
-      }
-    } catch (err) {
-      log({error:String(err)});
+    const a = await apply();
+    if (a && a.ok && a.updated) {
+      if (typeof a.bits === 'number')   bits = a.bits;
+      if (typeof a.visitas === 'number') vis  = a.visitas;
+      $('#bits').textContent = fmt(bits);
+      $('#visitas').textContent = fmt(vis);
+      flash('#mbits'); flash('#mvis');
+      localStorage.setItem(key, new Date().toISOString());
+    } else {
+      // Fallback: visita + setear bits absolutos
+      await visit();
+      await setBitsAbs(bits + 50);
+      const p1 = await perfil();
+      bits = Number(p1.bits_disponibles ?? p1.Bits ?? (bits+50));
+      vis  = Number(p1.Visitas ?? (vis+1));
+      $('#bits').textContent = fmt(bits);
+      $('#visitas').textContent = fmt(vis);
+      flash('#mbits'); flash('#mvis');
+      localStorage.setItem(key, new Date().toISOString());
     }
   } else {
     log('SKIP acreditación (sin auth o cooldown)');
