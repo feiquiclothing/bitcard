@@ -24,7 +24,7 @@
 <script>
 (async () => {
   const qs = new URLSearchParams(location.search);
-  const API = "https://script.google.com/macros/s/AKfycbzllIFMrfGNVTe--zw_EhWSeJ6E7kodaN5X42sncu9t2nZ6a5fvaaB9K5KNFE5yaAe7HQ/exec"; // <- ACTUALIZA si redeployás
+  const API = "https://script.google.com/macros/s/AKfycbynqoZHnauSW8BZL9qbygNhx91Ja1-aLNF14X92wa0udO4tGugE0kFyVBO1JNbczaAmYw/exec"; // <- ACTUALIZA si redeployás
   const id  = (qs.get('id')||'').toString().padStart(3,'0');
   const k   = qs.get('auth') || '';
   const force = qs.get('force') === '1';
