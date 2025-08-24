@@ -135,11 +135,20 @@
           document.getElementById("BitsHistoricos").textContent = fmt(nuevosHist);
 
           // 🔥 Log único: suma bits, historial, visitas y registra en bit_logs
-          var logp = new URLSearchParams({ action:"log", ID:c.ID, Nombre:c.Nombre || "", Incremento:50 });
-          fetch(API_URL + "?" + logp, { cache:"no-store" })
-          .then(r => r.json()).then(j => {
-            console.log("[log] resp:", j);
-          }).catch(()=>{});
+          var logp = new URLSearchParams({
+  action: "log",
+  id: c.ID || id, // usa `id` como respaldo por si `c.ID` es null
+  Nombre: c.Nombre || "",
+  Incremento: 50,
+  auth: SECRET // <== importante
+});
+fetch(API_URL + "?" + logp, { cache: "no-store" })
+  .then(r => r.json())
+  .then(j => {
+    console.log("[log] resp:", j);
+  })
+  .catch(() => {});
+
 
           document.getElementById("mensajeVisita").classList.add("visible");
           document.getElementById("mensajeBits").classList.add("visible");
