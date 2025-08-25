@@ -1,3 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BitCard Scanner</title>
+  <style>
+    body {
+      background-color: white;
+      color: #B6B6B6;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    img {
+      width: 80%;
+      max-width: 400px;
+      height: auto;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    p {
+      font-size: 1rem;
+      margin-top: 2rem;
+      opacity: 0.6;
+    }
+    #ranking {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #ranking-list {
+      width: 100%;
+      text-align: left;
+    }
+    .rank-item {
+      margin-bottom: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="" />
+
+  <h1>ESCANEÁ TU BITCARD</h1>
+
+
+  <div id="ranking">
+    <h2>Top 10</h2>
+    <div id="ranking-list">Cargando...</div>
+  </div>
+
 <script>
   const urlParams = new URLSearchParams(window.location.search);
   const authParam = urlParams.get("auth");
@@ -30,3 +92,6 @@
       document.getElementById("ranking-list").innerText = "No se pudo cargar el ranking.";
     });
 </script>
+
+</body>
+</html>
