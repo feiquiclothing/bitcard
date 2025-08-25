@@ -130,6 +130,18 @@
         document.getElementById("nombre").textContent = "Error cargando datos";
       });
   })();
+    fetch("data/eventos.json")
+  .then(r => r.json())
+  .then(data => {
+    console.log("Eventos cargados:", data);
+    // Aquí podés usar los datos como quieras
+    // Por ejemplo:
+    // document.getElementById("eventos").textContent = data[0].nombre;
+  })
+  .catch(err => {
+    console.error("Error al cargar eventos.json:", err);
+  });
+
   </script>
 </body>
 </html>
