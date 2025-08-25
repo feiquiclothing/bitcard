@@ -50,13 +50,13 @@
   </style>
 </head>
 <body>
-  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="Logo Feiqui" />
+  <img src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px.png?v=1744482437" alt="" />
 
   <h1>ESCANEÁ TU BITCARD</h1>
 
 
   <div id="ranking">
-    <h2>Top 10 BITS</h2>
+    <h2>Top 10</h2>
     <div id="ranking-list">Cargando...</div>
   </div>
 
@@ -81,7 +81,7 @@
           .sort((a, b) => b[2] - a[2])
           .slice(0, 10);
 
-        const list = rows.map((r, i) => `<div class='rank-item'>${i + 1}. ${r[1]} – ${r[2]} bits</div>`).join("");
+        const list = rows.map((r, i) => `<div class='rank-item'>${i + 1}. ${r[1]} – ${r[3]} bits</div>`).join("");
         document.getElementById("ranking-list").innerHTML = list;
       })
       .catch(() => {
