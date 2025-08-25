@@ -18,8 +18,8 @@
   <img id="logo" src="https://cdn.shopify.com/s/files/1/0550/5001/0810/files/Feiqui_80_x_25_cm_80_x_2_cm_25_x_35_cm_300_x_300_px_750_x_750_px_0a127bcc-eff4-460a-aa46-251eca4ab8c6.png?v=1750866051" alt=""/>
   <div id="info-principal">
     <h1 id="clienteId">ID:</h1>
-    <h1 id="nombre">SUJETO:</h1>
-    <h1 id="circulo">〇:</h1>
+    <h1 id="nombre"></h1>
+    <h1 id="circulo">〇</h1>
   </div>
   <img id="circuloImagen" src="" alt=""/>
   <div class="count">Bits canjeables: <strong id="Bits">0</strong></div>
@@ -76,12 +76,12 @@
       .then(c => {
         if (!c || !c.ID) { document.getElementById("nombre").textContent = "NO ENCONTRADO"; return; }
 
-        document.getElementById("nombre").textContent  = "SUJETO: " + (c.Nombre || "-");
-        document.getElementById("Ranking").textContent = (c.Ranking ?? "-");
+        document.getElementById("nombre").textContent  = c.Nombre || "";
+        document.getElementById("Ranking").textContent = (c.Ranking ?? "");
 
         const circleRaw = String(c["Círculo"] || "").toUpperCase().trim();
         const key = varianteCirculo[circleRaw] || "1";
-        document.getElementById("circulo").textContent = "CÍRCULO: " + nombresCirculo[key];
+        document.getElementById("circulo").textContent = nombresCirculo[key] || "";
         const imgEl = document.getElementById("circuloImagen");
         imgEl.src = imgs[key] || "";
         imgEl.classList.toggle("circulo-posthuman", key === "3");
